@@ -135,6 +135,8 @@ a{color:inherit;}
 
 /* ---------- GRID / CHARTS ---------- */
 .dash-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-bottom:16px;}
+.dash-grid-wallet{grid-template-columns:1fr 1.6fr;}
+.dash-grid-half{grid-template-columns:1fr 1fr;}
 .chart-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-m);padding:20px 20px 10px;}
 .chart-card h3{font-family:'Inter',sans-serif;text-transform:none;font-weight:800;font-size:14.5px;margin-bottom:2px;}
 .chart-card .chart-sub{font-size:11.5px;color:var(--muted);margin-bottom:14px;font-family:'JetBrains Mono',monospace;}
@@ -216,7 +218,7 @@ a{color:inherit;}
 .toast.toast-erro{border-left-color:var(--urgent);}
 
 @media(max-width:900px){
-    .dash-grid{grid-template-columns:1fr;}
+    .dash-grid, .dash-grid-wallet, .dash-grid-half{grid-template-columns:1fr;}
     :root{--sidebar-w:62px;}
     .sb-btn{width:44px;height:44px;}
     .sb-btn svg{width:18px;height:18px;}
@@ -315,7 +317,7 @@ a{color:inherit;}
                     <p>Resumo geral da operação Zoons.</p>
                 </div>
 
-                <div class="dash-grid" style="grid-template-columns:1fr 1.6fr;">
+                <div class="dash-grid dash-grid-wallet">
                     <div class="wallet-card">
                         <div class="wallet-top">
                             <div>
@@ -371,7 +373,7 @@ a{color:inherit;}
                     </div>
                 </div>
 
-                <div class="dash-grid" style="grid-template-columns:1fr 1fr;">
+                <div class="dash-grid dash-grid-half">
                     <div class="founder-card">
                         <h3>Vagas de fundador</h3>
                         <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:10px;" id="founderLabel">0 de 15 usadas</div>
@@ -628,17 +630,17 @@ function iniciarListeners(){
 
     unsubscribers.push(
         db.collection('empresas').where('status', '==', 'pendente')
-          .onSnapshot(snap => { cachePendentes = snap.docs; renderPendentes(); atualizarKPIsBasicos(); }, err => console.error(err))
+          .onSnapshot(snap => { cachePendentes = snap.docs; renderPendentes(); atualizarKPIsBasicos(); atualizarCacheCompleto(); }, err => console.error(err))
     );
 
     unsubscribers.push(
         db.collection('empresas').where('status', '==', 'aprovado')
-          .onSnapshot(snap => { cacheAprovadas = snap.docs; renderAprovadas(); atualizarKPIsBasicos(); }, err => console.error(err))
+          .onSnapshot(snap => { cacheAprovadas = snap.docs; renderAprovadas(); atualizarKPIsBasicos(); atualizarCacheCompleto(); }, err => console.error(err))
     );
 
     unsubscribers.push(
         db.collection('empresas').where('status', '==', 'rejeitado')
-          .onSnapshot(snap => { cacheDesativadas = snap.docs; renderDesativadas(); atualizarKPIsBasicos(); }, err => console.error(err))
+          .onSnapshot(snap => { cacheDesativadas = snap.docs; renderDesativadas(); atualizarKPIsBasicos(); atualizarCacheCompleto(); }, err => console.error(err))
     );
 
     unsubscribers.push(
@@ -646,20 +648,21 @@ function iniciarListeners(){
           .onSnapshot(snap => { cacheLeads = snap.docs; renderLeads(); atualizarKPIsBasicos(); }, err => console.error(err))
     );
 
-    // Coleção completa — usada no dashboard geral e na aba de pagamentos
-    unsubscribers.push(
-        db.collection('empresas')
-          .onSnapshot(snap => {
-              cacheEmpresasTodas = snap.docs;
-              renderDashboard();
-              renderPagamentos();
-          }, err => console.error(err))
-    );
-
     unsubscribers.push(
         db.collection('contadores').doc('fundadores')
           .onSnapshot(doc => { renderFundadores(doc.exists ? (doc.data().total || 0) : 0); }, err => console.error(err))
     );
+}
+
+// Em vez de pedir a coleção "empresas" inteira sem filtro (o que as regras
+// do Firestore costumam bloquear mesmo pra admin, porque é uma consulta
+// "list" sem where), montamos a lista completa juntando as três consultas
+// que já funcionam (pendentes + aprovadas + desativadas) — juntas, elas
+// cobrem 100% das empresas de qualquer jeito.
+function atualizarCacheCompleto(){
+    cacheEmpresasTodas = [...cachePendentes, ...cacheAprovadas, ...cacheDesativadas];
+    renderDashboard();
+    renderPagamentos();
 }
 
 function atualizarKPIsBasicos(){
