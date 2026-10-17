@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ACHOU+ | Painel Administrativo</title>
+<title>Zoons | Painel Administrativo</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,176 +12,222 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 
 <style>
 
 :root{
-    --paper:#FAFAF8;
-    --surface:#FFFFFF;
-    --ink:#15181D;
-    --muted:#6B6F76;
-    --line:rgba(21,24,29,.09);
-    --line-strong:rgba(21,24,29,.22);
-    --accent:#0E7C66;
-    --accent-dark:#0B6553;
-    --urgent:#E2542B;
-    --dark:#14171B;
-    --dark-2:#0E1013;
-    --radius-s:8px;
-    --radius-m:14px;
+    --green:#12A05C;
+    --green-d:#0C7F48;
+    --mint:#4ADE9B;
+    --mint-bg:#E6F8EE;
+    --dark:#0F2A33;
+    --ink:#0F2A33;
+    --muted:#5C7480;
+    --line:#E4EDE9;
+    --line-strong:#CBD9D2;
+    --bg:#F4F7F5;
+    --card:#FFFFFF;
+    --urgent:#D64545;
+    --urgent-bg:#FBEAEA;
+    --amber:#B8841C;
+    --amber-bg:#FBF2DF;
+    --radius-s:10px;
+    --radius-m:16px;
+    --radius-l:22px;
+    --sidebar-w:84px;
 }
 
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
 h1,h2,h3{font-family:'Anton',sans-serif;font-weight:400;text-transform:uppercase;letter-spacing:.01em;line-height:1;}
 .mono{font-family:'JetBrains Mono',monospace;}
 button, input{font-family:inherit;}
+[hidden]{display:none!important;}
+a{color:inherit;}
 
-/* HEADER */
-header{
-    background:var(--paper);
-    min-height:66px;
-    display:flex;align-items:center;justify-content:space-between;
-    padding:0 clamp(16px,5vw,48px);
-    border-bottom:1px solid var(--line);
-    position:sticky;top:0;z-index:10;
-}
-.logo{font-family:'Anton',sans-serif;font-size:22px;}
-.logo span{color:var(--accent);}
-.logo .tag{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:.04em;margin-left:8px;}
-.btn-logout{background:transparent;border:1.5px solid var(--line-strong);padding:9px 16px;border-radius:var(--radius-s);cursor:pointer;font-weight:600;font-size:13.5px;color:var(--ink);}
-.btn-logout:hover{border-color:var(--ink);}
-
-/* LOGIN / DENIED SCREENS */
-.center-screen{
-    min-height:80vh;display:flex;align-items:center;justify-content:center;padding:20px;
-}
-.login-card{
-    background:var(--surface);
-    border:1px solid var(--line);
-    border-top:3px solid var(--accent);
-    border-radius:var(--radius-m);
-    padding:32px 28px;
-    max-width:380px;width:100%;
-}
-.login-card h2{font-size:24px;margin-bottom:6px;}
+/* ---------- LOGIN / DENIED ---------- */
+.center-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg);}
+.login-card{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--green);border-radius:var(--radius-m);padding:34px 28px;max-width:380px;width:100%;box-shadow:0 20px 50px -25px rgba(15,42,51,.25);}
+.login-logo{font-family:'Anton',sans-serif;font-size:24px;margin-bottom:18px;}
+.login-logo span{color:var(--green);}
+.login-card h2{font-size:22px;margin-bottom:6px;}
 .login-card .sub{color:var(--muted);font-size:13px;margin-bottom:22px;}
 .field{margin-bottom:14px;}
 .field label{display:block;font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;color:#4A4E55;}
-.field input{width:100%;padding:11px 12px;border-radius:var(--radius-s);border:1.5px solid var(--line-strong);background:var(--paper);font-size:14px;color:var(--ink);outline:none;}
-.field input:focus{border-color:var(--accent);}
-.submit-btn{width:100%;background:var(--ink);color:var(--paper);border:none;padding:13px;border-radius:var(--radius-s);font-weight:700;cursor:pointer;margin-top:6px;font-size:14px;}
-.submit-btn:hover{background:var(--dark-2);}
+.field input{width:100%;padding:11px 12px;border-radius:var(--radius-s);border:1.5px solid var(--line-strong);background:var(--bg);font-size:14px;color:var(--ink);outline:none;}
+.field input:focus{border-color:var(--green);}
+.submit-btn{width:100%;background:var(--green);color:#fff;border:none;padding:13px;border-radius:var(--radius-s);font-weight:700;cursor:pointer;margin-top:6px;font-size:14px;}
+.submit-btn:hover{background:var(--green-d);}
 .error-msg{color:var(--urgent);font-size:12.5px;margin-bottom:10px;display:none;}
 
-/* DASHBOARD */
-.container{width:min(1000px,92%);margin:32px auto;}
+/* ---------- APP SHELL ---------- */
+#app{display:flex;min-height:100vh;}
 
-.tabs{display:flex;gap:8px;margin-bottom:26px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:0;}
-.tab-btn{
-    background:none;border:none;cursor:pointer;
-    padding:12px 6px;margin-right:14px;
-    font-weight:700;font-size:14px;color:var(--muted);
-    border-bottom:2.5px solid transparent;
+.sidebar{
+    width:var(--sidebar-w);flex-shrink:0;
+    background:var(--dark);
+    display:flex;flex-direction:column;align-items:center;
+    padding:20px 0;gap:6px;position:sticky;top:0;height:100vh;
 }
-.tab-btn.active{color:var(--ink);border-bottom-color:var(--accent);}
-.tab-btn .count{
-    font-family:'JetBrains Mono',monospace;font-size:11px;
-    background:var(--paper);border:1px solid var(--line-strong);
-    padding:2px 7px;border-radius:20px;margin-left:6px;
+.sb-logo{width:38px;height:38px;border-radius:11px;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Anton',sans-serif;font-size:17px;margin-bottom:22px;}
+.sb-nav{display:flex;flex-direction:column;gap:4px;flex:1;width:100%;align-items:center;}
+.sb-btn{
+    width:52px;height:52px;border-radius:14px;border:none;background:transparent;color:rgba(255,255,255,.55);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;
 }
+.sb-btn svg{width:21px;height:21px;}
+.sb-btn:hover{color:#fff;background:rgba(255,255,255,.08);}
+.sb-btn.active{color:#fff;background:var(--green);}
+.sb-btn .badge{
+    position:absolute;top:4px;right:6px;background:var(--urgent);color:#fff;font-family:'JetBrains Mono',monospace;
+    font-size:9.5px;font-weight:700;min-width:15px;height:15px;border-radius:20px;display:flex;align-items:center;justify-content:center;padding:0 3px;
+}
+.sb-foot{display:flex;flex-direction:column;gap:4px;align-items:center;}
 
-.tab-panel{display:none;}
-.tab-panel.active{display:block;}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
 
+.topbar{
+    background:var(--card);min-height:68px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 clamp(16px,3vw,32px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;gap:16px;
+}
+.topbar-title{font-family:'Anton',sans-serif;font-size:18px;white-space:nowrap;}
+.search-wrap{flex:1;max-width:360px;position:relative;display:flex;align-items:center;}
+.search-wrap svg{position:absolute;left:12px;width:15px;height:15px;color:var(--muted);}
+.search-wrap input{width:100%;padding:9px 12px 9px 34px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--bg);font-size:13px;outline:none;}
+.search-wrap input:focus{border-color:var(--green);}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.btn-ghost{background:transparent;border:1.5px solid var(--line-strong);padding:9px 14px;border-radius:999px;cursor:pointer;font-weight:600;font-size:12.5px;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+.btn-ghost:hover{border-color:var(--ink);}
+.avatar-chip{width:36px;height:36px;border-radius:50%;background:var(--mint-bg);color:var(--green-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;}
+
+.content{width:min(1180px,94%);margin:0 auto;padding:26px 0 70px;}
+
+.page-head{margin-bottom:22px;}
+.page-head h1{font-size:22px;margin-bottom:4px;}
+.page-head p{color:var(--muted);font-size:13.5px;}
+
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* ---------- KPI CARDS ---------- */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px;}
+.kpi-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-m);padding:18px 18px;}
+.kpi-card .lbl{font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:10px;display:block;}
+.kpi-card .val{font-family:'Anton',sans-serif;font-size:25px;}
+.kpi-card .sub{font-size:11.5px;color:var(--muted);margin-top:4px;}
+.kpi-card.accent{background:linear-gradient(135deg,var(--green) 0%,var(--green-d) 100%);border:none;color:#fff;}
+.kpi-card.accent .lbl{color:rgba(255,255,255,.75);}
+.kpi-card.accent .sub{color:rgba(255,255,255,.75);}
+
+/* ---------- WALLET CARD ---------- */
+.wallet-card{
+    background:linear-gradient(135deg,#12A05C 0%,#0C7F48 60%,#0A6B3E 100%);
+    border-radius:var(--radius-l);padding:24px 24px 22px;color:#fff;position:relative;overflow:hidden;
+    min-height:168px;display:flex;flex-direction:column;justify-content:space-between;
+}
+.wallet-card::after{content:'';position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.08);}
+.wallet-top{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1;}
+.wallet-top .tag{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.8;}
+.wallet-brand{font-family:'Anton',sans-serif;font-size:17px;letter-spacing:.03em;}
+.wallet-val{font-family:'Anton',sans-serif;font-size:32px;margin:10px 0 4px;position:relative;z-index:1;}
+.wallet-foot{display:flex;justify-content:space-between;align-items:flex-end;font-family:'JetBrains Mono',monospace;font-size:11px;opacity:.85;position:relative;z-index:1;}
+
+/* ---------- GRID / CHARTS ---------- */
+.dash-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-bottom:16px;}
+.chart-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-m);padding:20px 20px 10px;}
+.chart-card h3{font-family:'Inter',sans-serif;text-transform:none;font-weight:800;font-size:14.5px;margin-bottom:2px;}
+.chart-card .chart-sub{font-size:11.5px;color:var(--muted);margin-bottom:14px;font-family:'JetBrains Mono',monospace;}
+.chart-wrap{position:relative;height:210px;}
+.chart-empty{display:flex;align-items:center;justify-content:center;height:210px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;}
+
+.founder-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-m);padding:20px;}
+.founder-card h3{font-family:'Inter',sans-serif;text-transform:none;font-weight:800;font-size:14.5px;margin-bottom:12px;}
+.founder-bar-track{background:var(--line);border-radius:20px;height:10px;overflow:hidden;margin-bottom:8px;}
+.founder-bar-fill{background:linear-gradient(90deg,var(--green),var(--mint));height:100%;border-radius:20px;transition:width .4s;}
+.founder-stack{display:flex;margin-top:16px;}
+.founder-avatar{width:34px;height:34px;border-radius:50%;background:var(--mint-bg);color:var(--green-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11.5px;border:2px solid var(--card);margin-left:-10px;}
+.founder-avatar:first-child{margin-left:0;}
+.founder-avatar.more{background:var(--dark);color:#fff;}
+
+/* ---------- TABS / FILTER CHIPS ---------- */
+.chips{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.chip{background:var(--card);border:1.5px solid var(--line-strong);padding:8px 15px;border-radius:999px;font-weight:700;font-size:12.5px;cursor:pointer;color:var(--muted);display:flex;align-items:center;gap:6px;}
+.chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+.chip .count{font-family:'JetBrains Mono',monospace;opacity:.8;}
+
+/* ---------- ROWS ---------- */
 .row{
-    background:var(--surface);
-    border:1px solid var(--line);
-    border-radius:var(--radius-m);
-    padding:18px 20px;
-    margin-bottom:12px;
-    display:flex;
-    flex-wrap:wrap;
-    gap:16px;
-    align-items:center;
-    justify-content:space-between;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius-m);
+    padding:18px 20px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;
 }
-
 .row-info h3{font-size:16px;text-transform:none;font-family:'Inter',sans-serif;font-weight:700;margin-bottom:4px;}
 .row-info .meta{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);margin-bottom:6px;}
 .row-info .desc{font-size:13.5px;color:#4A4E55;max-width:520px;}
-
 .row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-.row-actions button{
-    border:none;cursor:pointer;padding:9px 14px;border-radius:var(--radius-s);
-    font-weight:700;font-size:12.5px;white-space:nowrap;
-}
-.btn-approve{background:var(--accent);color:#fff;}
-.btn-approve:hover{background:var(--accent-dark);}
+.row-actions button, .row-actions a{border:none;cursor:pointer;padding:9px 14px;border-radius:var(--radius-s);font-weight:700;font-size:12.5px;white-space:nowrap;}
+.btn-approve{background:var(--green);color:#fff;}
+.btn-approve:hover{background:var(--green-d);}
 .btn-reject{background:transparent;border:1.5px solid var(--line-strong)!important;color:var(--ink);}
 .btn-reject:hover{border-color:var(--urgent)!important;color:var(--urgent);}
 .btn-delete{background:transparent;border:1.5px solid var(--urgent)!important;color:var(--urgent);}
 .btn-delete:hover{background:var(--urgent);color:#fff;}
 .btn-wa{background:var(--dark);color:#fff;text-decoration:none;display:inline-block;}
-.btn-wa:hover{background:var(--dark-2);}
+.btn-wa:hover{background:#09202A;}
+.btn-cancel-sub{background:transparent;border:1.5px solid var(--urgent)!important;color:var(--urgent);}
+.btn-cancel-sub:hover{background:var(--urgent);color:#fff;}
+.btn-flag{background:transparent;border:1.5px solid var(--amber)!important;color:var(--amber);}
+.btn-flag:hover{background:var(--amber);color:#fff;}
 
 .toggle-label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#4A4E55;cursor:pointer;}
-.toggle-label input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;}
+.toggle-label input{width:15px;height:15px;accent-color:var(--green);cursor:pointer;}
 
-.status-tag{
-    font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;
-    padding:4px 9px;border-radius:20px;
-}
-.status-novo{background:#FDECE7;color:var(--urgent);}
-.status-atendido{background:#E4F3EF;color:var(--accent-dark);}
+.status-tag{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap;}
+.status-novo{background:var(--urgent-bg);color:var(--urgent);}
+.status-atendido{background:var(--mint-bg);color:var(--green-d);}
+.status-ativa{background:var(--mint-bg);color:var(--green-d);}
+.status-pendente{background:var(--amber-bg);color:var(--amber);}
+.status-atrasada{background:var(--urgent-bg);color:var(--urgent);}
+.status-cancelada{background:var(--line);color:var(--muted);}
+.status-sem{background:var(--line);color:var(--muted);}
+.badge-fundador{background:var(--dark);color:#fff;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
 
-.empty{
-    text-align:center;padding:40px 20px;color:var(--muted);
-    font-family:'JetBrains Mono',monospace;font-size:12.5px;
-}
+.empty{text-align:center;padding:40px 20px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12.5px;}
 
-[hidden]{display:none!important;}
+.toolbar{display:flex;justify-content:flex-end;margin-bottom:14px;}
 
-/* CONFIRM MODAL */
-.confirm-overlay{
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(21,24,29,.55);
-    z-index:1000;
-    align-items:center;
-    justify-content:center;
-    padding:20px;
-}
+/* ---------- CONFIRM MODAL ---------- */
+.confirm-overlay{display:none;position:fixed;inset:0;background:rgba(15,42,51,.55);z-index:1000;align-items:center;justify-content:center;padding:20px;}
 .confirm-overlay.open{display:flex;}
-.confirm-box{
-    background:var(--surface);
-    max-width:380px;
-    width:100%;
-    border-radius:var(--radius-m);
-    padding:26px 24px;
-    border-top:3px solid var(--urgent);
-}
+.confirm-box{background:var(--card);max-width:380px;width:100%;border-radius:var(--radius-m);padding:26px 24px;border-top:4px solid var(--urgent);}
 .confirm-box h3{font-size:19px;text-transform:none;font-family:'Inter',sans-serif;font-weight:800;margin-bottom:8px;}
 .confirm-box p{font-size:13.5px;color:#4A4E55;line-height:1.5;margin-bottom:20px;}
 .confirm-actions{display:flex;gap:10px;}
-.confirm-actions button{
-    flex:1;
-    padding:11px;
-    border-radius:var(--radius-s);
-    font-weight:700;
-    font-size:13.5px;
-    cursor:pointer;
-    border:none;
-}
-.confirm-cancel{background:var(--paper);border:1.5px solid var(--line-strong)!important;color:var(--ink);}
+.confirm-actions button{flex:1;padding:11px;border-radius:var(--radius-s);font-weight:700;font-size:13.5px;cursor:pointer;border:none;}
+.confirm-cancel{background:var(--bg);border:1.5px solid var(--line-strong)!important;color:var(--ink);}
 .confirm-cancel:hover{border-color:var(--ink)!important;}
 .confirm-ok{background:var(--urgent);color:#fff;}
-.confirm-ok:hover{background:#B8451F;}
+.confirm-ok:hover{background:#B8371F;}
 
-@media(max-width:600px){
+/* ---------- TOASTS ---------- */
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:10px;max-width:320px;}
+.toast{background:var(--ink);color:#fff;padding:13px 16px;border-radius:var(--radius-s);font-size:13px;font-weight:600;box-shadow:0 10px 30px -10px rgba(0,0,0,.4);opacity:0;transform:translateY(10px);transition:opacity .25s,transform .25s;border-left:4px solid var(--green);}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.toast-erro{border-left-color:var(--urgent);}
+
+@media(max-width:900px){
+    .dash-grid{grid-template-columns:1fr;}
+    :root{--sidebar-w:62px;}
+    .sb-btn{width:44px;height:44px;}
+    .sb-btn svg{width:18px;height:18px;}
+    .sb-logo{width:32px;height:32px;font-size:14px;}
+}
+@media(max-width:700px){
+    .search-wrap{display:none;}
+    .topbar-title{font-size:15px;}
     .row{flex-direction:column;align-items:flex-start;}
     .row-actions{width:100%;}
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
 }
 
 </style>
@@ -190,8 +236,9 @@ header{
 
 <div id="loginScreen" class="center-screen">
     <div class="login-card">
+        <div class="login-logo">ZOONS<span>+</span></div>
         <h2>Admin</h2>
-        <p class="sub">Painel administrativo do ACHOU+.</p>
+        <p class="sub">Painel administrativo da Zoons.</p>
         <form id="adminLoginForm" onsubmit="return handleAdminLogin(event)">
             <div class="field"><label>E-mail</label><input id="adminEmail" type="email" required></div>
             <div class="field"><label>Senha</label><input id="adminSenha" type="password" required></div>
@@ -209,38 +256,171 @@ header{
     </div>
 </div>
 
-<div id="dashboard" hidden>
+<div id="app" hidden>
 
-    <header>
-        <div class="logo">ACHOU<span>+</span><span class="tag">ADMIN</span></div>
-        <div style="display:flex;gap:8px;">
-            <a class="btn-logout" href="https://console.firebase.google.com/project/achou-plus/firestore/data/~2Fempresas" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">Firestore ↗</a>
-            <button class="btn-logout" onclick="auth.signOut()">Sair</button>
+    <aside class="sidebar">
+        <div class="sb-logo">Z</div>
+        <nav class="sb-nav">
+            <button class="sb-btn active" data-panel="geral" onclick="switchPanel('geral')" title="Visão geral">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg>
+            </button>
+            <button class="sb-btn" data-panel="pendentes" onclick="switchPanel('pendentes')" title="Pendentes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.5 2"></path></svg>
+                <span class="badge" id="badgePendentes" hidden>0</span>
+            </button>
+            <button class="sb-btn" data-panel="aprovadas" onclick="switchPanel('aprovadas')" title="Aprovadas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="9"></circle></svg>
+            </button>
+            <button class="sb-btn" data-panel="pagamentos" onclick="switchPanel('pagamentos')" title="Pagamentos">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"></rect><path d="M2.5 10h19"></path><path d="M6 15h4"></path></svg>
+                <span class="badge" id="badgeAtrasadas" hidden>0</span>
+            </button>
+            <button class="sb-btn" data-panel="desativadas" onclick="switchPanel('desativadas')" title="Desativadas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M5.5 5.5l13 13"></path></svg>
+            </button>
+            <button class="sb-btn" data-panel="leads" onclick="switchPanel('leads')" title="Leads">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4 8.6 8.6 0 0 1-3.1-.6L3 21l1.7-5.1A8.4 8.4 0 1 1 21 11.5z"></path></svg>
+                <span class="badge" id="badgeLeads" hidden>0</span>
+            </button>
+        </nav>
+        <div class="sb-foot">
+            <a class="sb-btn" href="https://console.firebase.google.com/project/achou-plus/firestore/data/~2Fempresas" target="_blank" rel="noopener" title="Abrir Firestore">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"></ellipse><path d="M4 5.5v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"></path><path d="M4 11.5v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"></path></svg>
+            </a>
+            <button class="sb-btn" onclick="auth.signOut()" title="Sair">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg>
+            </button>
         </div>
-    </header>
+    </aside>
 
-    <div class="container">
+    <div class="main">
+        <header class="topbar">
+            <div class="topbar-title">Painel <span style="color:var(--green);">Zoons</span></div>
+            <div class="search-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+                <input id="buscaGlobal" type="text" placeholder="Buscar empresa por nome..." oninput="aplicarBusca(this.value)">
+            </div>
+            <div class="topbar-right">
+                <a class="btn-ghost" href="https://console.firebase.google.com/project/achou-plus/firestore/data/~2Fempresas" target="_blank" rel="noopener">Firestore ↗</a>
+                <button class="btn-ghost" onclick="auth.signOut()">Sair</button>
+                <div class="avatar-chip" id="avatarChip">A</div>
+            </div>
+        </header>
 
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="pendentes" onclick="switchTab('pendentes', this)">
-                Pendentes <span class="count mono" id="countPendentes">0</span>
-            </button>
-            <button class="tab-btn" data-tab="aprovadas" onclick="switchTab('aprovadas', this)">
-                Aprovadas <span class="count mono" id="countAprovadas">0</span>
-            </button>
-            <button class="tab-btn" data-tab="desativadas" onclick="switchTab('desativadas', this)">
-                Desativadas <span class="count mono" id="countDesativadas">0</span>
-            </button>
-            <button class="tab-btn" data-tab="leads" onclick="switchTab('leads', this)">
-                Leads <span class="count mono" id="countLeads">0</span>
-            </button>
+        <div class="content">
+
+            <div class="panel active" id="panel-geral">
+                <div class="page-head">
+                    <h1 id="saudacao">Olá 👋</h1>
+                    <p>Resumo geral da operação Zoons.</p>
+                </div>
+
+                <div class="dash-grid" style="grid-template-columns:1fr 1.6fr;">
+                    <div class="wallet-card">
+                        <div class="wallet-top">
+                            <div>
+                                <div class="tag">Receita recorrente</div>
+                                <div class="wallet-brand">ZOONS DESTAQUE</div>
+                            </div>
+                            <svg width="26" height="18" viewBox="0 0 26 18" fill="none"><rect width="26" height="18" rx="3" fill="rgba(255,255,255,.18)"/></svg>
+                        </div>
+                        <div>
+                            <div class="tag">MRR estimado / mês</div>
+                            <div class="wallet-val" id="walletMRR">R$ 0,00</div>
+                        </div>
+                        <div class="wallet-foot">
+                            <span id="walletAssinantes">0 assinantes ativos</span>
+                            <span id="walletFundadores">0 fundadores</span>
+                        </div>
+                    </div>
+
+                    <div class="kpi-grid" style="margin-bottom:0;">
+                        <div class="kpi-card">
+                            <span class="lbl">Total de empresas</span>
+                            <div class="val" id="kpiTotal">0</div>
+                            <div class="sub" id="kpiTotalSub">—</div>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="lbl">Pendentes de aprovação</span>
+                            <div class="val" id="kpiPendentes">0</div>
+                            <div class="sub">aguardando revisão</div>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="lbl">Assinantes Destaque</span>
+                            <div class="val" id="kpiAssinantes">0</div>
+                            <div class="sub" id="kpiAssinantesSub">em dia</div>
+                        </div>
+                        <div class="kpi-card">
+                            <span class="lbl">Leads novos</span>
+                            <div class="val" id="kpiLeads">0</div>
+                            <div class="sub">pedidos "preciso agora"</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dash-grid">
+                    <div class="chart-card">
+                        <h3>Empresas cadastradas por mês</h3>
+                        <div class="chart-sub">ÚLTIMOS 6 MESES</div>
+                        <div class="chart-wrap"><canvas id="chartCadastros"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Assinaturas por status</h3>
+                        <div class="chart-sub">PLANO DESTAQUE</div>
+                        <div class="chart-wrap" id="chartStatusWrap"><canvas id="chartStatus"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="dash-grid" style="grid-template-columns:1fr 1fr;">
+                    <div class="founder-card">
+                        <h3>Vagas de fundador</h3>
+                        <div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:10px;" id="founderLabel">0 de 15 usadas</div>
+                        <div class="founder-bar-track"><div class="founder-bar-fill" id="founderBarFill" style="width:0%;"></div></div>
+                        <div class="founder-stack" id="founderStack"></div>
+                    </div>
+                    <div class="founder-card">
+                        <h3>Empresas que precisam de atenção</h3>
+                        <div id="atencaoList" style="font-size:12.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;">Carregando...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" id="panel-pendentes">
+                <div class="page-head"><h1>Pendentes</h1><p>Empresas aguardando aprovação para entrar no ar.</p></div>
+                <div id="tab-pendentes"><div class="empty">CARREGANDO...</div></div>
+            </div>
+
+            <div class="panel" id="panel-aprovadas">
+                <div class="page-head"><h1>Aprovadas</h1><p>Empresas ativas e visíveis nas buscas.</p></div>
+                <div id="tab-aprovadas"><div class="empty">CARREGANDO...</div></div>
+            </div>
+
+            <div class="panel" id="panel-pagamentos">
+                <div class="page-head"><h1>Pagamentos</h1><p>Assinaturas do Plano Destaque — quem paga, quem está atrasado, e cancelamentos.</p></div>
+                <div class="chips">
+                    <button class="chip active" data-filtro="todas" onclick="filtrarPagamentos('todas', this)">Todas <span class="count mono" id="cntTodas">0</span></button>
+                    <button class="chip" data-filtro="ativa" onclick="filtrarPagamentos('ativa', this)">Em dia <span class="count mono" id="cntAtiva">0</span></button>
+                    <button class="chip" data-filtro="pendente" onclick="filtrarPagamentos('pendente', this)">Aguardando <span class="count mono" id="cntPendente">0</span></button>
+                    <button class="chip" data-filtro="atrasada" onclick="filtrarPagamentos('atrasada', this)">Atrasadas <span class="count mono" id="cntAtrasada">0</span></button>
+                    <button class="chip" data-filtro="cancelada" onclick="filtrarPagamentos('cancelada', this)">Canceladas <span class="count mono" id="cntCancelada">0</span></button>
+                </div>
+                <div class="toolbar">
+                    <button class="btn-ghost" onclick="exportarPagamentosCSV()">⬇ Exportar CSV</button>
+                </div>
+                <div id="tab-pagamentos"><div class="empty">CARREGANDO...</div></div>
+            </div>
+
+            <div class="panel" id="panel-desativadas">
+                <div class="page-head"><h1>Desativadas</h1><p>Empresas rejeitadas ou desativadas manualmente.</p></div>
+                <div id="tab-desativadas"><div class="empty">CARREGANDO...</div></div>
+            </div>
+
+            <div class="panel" id="panel-leads">
+                <div class="page-head"><h1>Leads</h1><p>Pedidos recebidos pelo formulário "Preciso agora".</p></div>
+                <div id="tab-leads"><div class="empty">CARREGANDO...</div></div>
+            </div>
+
         </div>
-
-        <div class="tab-panel active" id="tab-pendentes"><div class="empty">CARREGANDO...</div></div>
-        <div class="tab-panel" id="tab-aprovadas"><div class="empty">CARREGANDO...</div></div>
-        <div class="tab-panel" id="tab-desativadas"><div class="empty">CARREGANDO...</div></div>
-        <div class="tab-panel" id="tab-leads"><div class="empty">CARREGANDO...</div></div>
-
     </div>
 </div>
 
@@ -250,15 +430,17 @@ header{
         <p id="confirmText"></p>
         <div class="confirm-actions">
             <button class="confirm-cancel" onclick="fecharConfirm()">Cancelar</button>
-            <button class="confirm-ok" id="confirmOkBtn">Excluir</button>
+            <button class="confirm-ok" id="confirmOkBtn">Confirmar</button>
         </div>
     </div>
 </div>
 
+<div class="toast-wrap" id="toastWrap"></div>
 
 <script>
 
-/* Cole aqui as MESMAS chaves usadas em achou-plus.html — é o mesmo projeto Firebase */
+/* ========== FIREBASE ========== */
+
 const firebaseConfig = {
     apiKey: "AIzaSyCL47mY9G1aHQRsHg76nwYzbvAgej3m6EI",
     authDomain: "achou-plus.firebaseapp.com",
@@ -270,6 +452,47 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+const NETLIFY_FUNCTIONS_BASE = 'https://achou-plus-backend.netlify.app/.netlify/functions';
+const LIMITE_FUNDADORES = 15;
+
+/* ========== HELPERS ========== */
+
+function esc(str){
+    if(str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function soDigitos(str){
+    return (str || '').replace(/\D/g, '');
+}
+
+function formatarBRL(valor){
+    return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function iniciais(nome){
+    const partes = (nome || '?').trim().split(/\s+/);
+    return ((partes[0]?.[0] || '') + (partes[1]?.[0] || '')).toUpperCase() || '?';
+}
+
+function mostrarToast(msg, tipo){
+    const wrap = document.getElementById('toastWrap');
+    const el = document.createElement('div');
+    el.className = 'toast' + (tipo === 'erro' ? ' toast-erro' : '');
+    el.textContent = msg;
+    wrap.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    setTimeout(() => {
+        el.classList.remove('show');
+        setTimeout(() => el.remove(), 300);
+    }, 4200);
+}
 
 function traduzErroFirebase(err){
     const map = {
@@ -297,7 +520,7 @@ function handleAdminLogin(e){
     return false;
 }
 
-/* ---------- CONTROLE DE ACESSO ---------- */
+/* ========== CONTROLE DE ACESSO ========== */
 
 let unsubscribers = [];
 
@@ -307,7 +530,7 @@ auth.onAuthStateChanged(async user => {
 
     document.getElementById('loginScreen').hidden = true;
     document.getElementById('deniedScreen').hidden = true;
-    document.getElementById('dashboard').hidden = true;
+    document.getElementById('app').hidden = true;
 
     if(!user){
         document.getElementById('loginScreen').hidden = false;
@@ -323,7 +546,10 @@ auth.onAuthStateChanged(async user => {
             return;
         }
 
-        document.getElementById('dashboard').hidden = false;
+        document.getElementById('app').hidden = false;
+        const nomeAdmin = (user.email || 'Admin').split('@')[0];
+        document.getElementById('saudacao').textContent = 'Olá, ' + nomeAdmin + ' 👋';
+        document.getElementById('avatarChip').textContent = iniciais(nomeAdmin);
         iniciarListeners();
 
     } catch(err){
@@ -332,55 +558,164 @@ auth.onAuthStateChanged(async user => {
     }
 });
 
-/* ---------- TABS ---------- */
+/* ========== NAVEGAÇÃO ========== */
 
-function switchTab(tab, btn){
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + tab).classList.add('active');
+function switchPanel(nome){
+    document.querySelectorAll('.sb-btn[data-panel]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const btn = document.querySelector('.sb-btn[data-panel="' + nome + '"]');
+    if(btn) btn.classList.add('active');
+    document.getElementById('panel-' + nome).classList.add('active');
+    document.getElementById('buscaGlobal').value = '';
+    buscaAtual = '';
 }
 
-/* ---------- LISTENERS ---------- */
+let buscaAtual = '';
+function aplicarBusca(valor){
+    buscaAtual = (valor || '').toLowerCase().trim();
+    renderPendentes();
+    renderAprovadas();
+    renderDesativadas();
+    renderPagamentos();
+}
+function passaBusca(nome){
+    if(!buscaAtual) return true;
+    return (nome || '').toLowerCase().includes(buscaAtual);
+}
+
+/* ========== CONFIRM MODAL (promise-based) ========== */
+
+let confirmResolve = null;
+
+function confirmarAcaoAdmin(titulo, texto, textoBotao){
+    document.getElementById('confirmTitle').textContent = titulo;
+    document.getElementById('confirmText').textContent = texto;
+    const okBtn = document.getElementById('confirmOkBtn');
+    okBtn.textContent = textoBotao || 'Confirmar';
+    document.getElementById('confirmOverlay').classList.add('open');
+    return new Promise(resolve => {
+        confirmResolve = resolve;
+        okBtn.onclick = () => {
+            const r = confirmResolve;
+            confirmResolve = null;
+            document.getElementById('confirmOverlay').classList.remove('open');
+            if(r) r(true);
+        };
+    });
+}
+
+function fecharConfirm(){
+    document.getElementById('confirmOverlay').classList.remove('open');
+    if(confirmResolve){
+        const r = confirmResolve;
+        confirmResolve = null;
+        r(false);
+    }
+}
+
+/* ========== CACHES (para busca/filtro sem reconsultar o Firestore) ========== */
+
+let cachePendentes = [];
+let cacheAprovadas = [];
+let cacheDesativadas = [];
+let cacheLeads = [];
+let cacheEmpresasTodas = [];
+let filtroPagamentosAtual = 'todas';
+
+/* ========== LISTENERS ========== */
 
 function iniciarListeners(){
 
     unsubscribers.push(
         db.collection('empresas').where('status', '==', 'pendente')
-          .onSnapshot(renderPendentes, err => console.error(err))
+          .onSnapshot(snap => { cachePendentes = snap.docs; renderPendentes(); atualizarKPIsBasicos(); }, err => console.error(err))
     );
 
     unsubscribers.push(
         db.collection('empresas').where('status', '==', 'aprovado')
-          .onSnapshot(renderAprovadas, err => console.error(err))
+          .onSnapshot(snap => { cacheAprovadas = snap.docs; renderAprovadas(); atualizarKPIsBasicos(); }, err => console.error(err))
     );
 
     unsubscribers.push(
         db.collection('empresas').where('status', '==', 'rejeitado')
-          .onSnapshot(renderDesativadas, err => console.error(err))
+          .onSnapshot(snap => { cacheDesativadas = snap.docs; renderDesativadas(); atualizarKPIsBasicos(); }, err => console.error(err))
     );
 
     unsubscribers.push(
         db.collection('leads').orderBy('criado_em', 'desc').limit(100)
-          .onSnapshot(renderLeads, err => console.error(err))
+          .onSnapshot(snap => { cacheLeads = snap.docs; renderLeads(); atualizarKPIsBasicos(); }, err => console.error(err))
+    );
+
+    // Coleção completa — usada no dashboard geral e na aba de pagamentos
+    unsubscribers.push(
+        db.collection('empresas')
+          .onSnapshot(snap => {
+              cacheEmpresasTodas = snap.docs;
+              renderDashboard();
+              renderPagamentos();
+          }, err => console.error(err))
+    );
+
+    unsubscribers.push(
+        db.collection('contadores').doc('fundadores')
+          .onSnapshot(doc => { renderFundadores(doc.exists ? (doc.data().total || 0) : 0); }, err => console.error(err))
     );
 }
 
-function renderPendentes(snapshot){
-    document.getElementById('countPendentes').textContent = snapshot.size;
+function atualizarKPIsBasicos(){
+    document.getElementById('kpiPendentes').textContent = cachePendentes.length;
+    const leadsNovos = cacheLeads.filter(d => (d.data().status || 'novo') !== 'atendido').length;
+    document.getElementById('kpiLeads').textContent = leadsNovos;
+
+    const pend = document.getElementById('badgePendentes');
+    if(cachePendentes.length > 0){ pend.hidden = false; pend.textContent = cachePendentes.length > 99 ? '99+' : cachePendentes.length; }
+    else pend.hidden = true;
+
+    const leadsB = document.getElementById('badgeLeads');
+    if(leadsNovos > 0){ leadsB.hidden = false; leadsB.textContent = leadsNovos > 99 ? '99+' : leadsNovos; }
+    else leadsB.hidden = true;
+}
+
+/* ========== STATUS DE ASSINATURA ========== */
+
+function precoPadraoEmpresa(e){
+    const imoveis = e.categoria === 'Imóveis';
+    if(e.preco_mensal) return e.preco_mensal;
+    if(e.fundador) return imoveis ? 59.90 : 29.90;
+    return imoveis ? 99.90 : 49.90;
+}
+
+function statusAssinatura(e){
+    if(e.atraso_manual) return { key: 'atrasada', label: 'Atrasada' };
+    const s = e.assinatura_status;
+    if(s === 'ativa' || s === 'authorized') return { key: 'ativa', label: 'Em dia' };
+    if(s === 'pendente') return { key: 'pendente', label: 'Aguardando pagamento' };
+    if(['atrasada', 'overdue', 'paused', 'pausada', 'suspended'].includes(s)) return { key: 'atrasada', label: 'Atrasada' };
+    if(['cancelada', 'cancelled'].includes(s)) return { key: 'cancelada', label: 'Cancelada' };
+    return { key: 'sem', label: 'Sem plano' };
+}
+
+function temHistoricoDeAssinatura(e){
+    return !!(e.assinatura_id || e.assinatura_status || e.plano === 'destaque' || e.atraso_manual);
+}
+
+/* ========== RENDER: PENDENTES ========== */
+
+function renderPendentes(){
+    const docs = cachePendentes.filter(d => passaBusca(d.data().nome));
     const el = document.getElementById('tab-pendentes');
-    if(snapshot.empty){
+    if(docs.length === 0){
         el.innerHTML = '<div class="empty">NENHUMA EMPRESA PENDENTE.</div>';
         return;
     }
-    el.innerHTML = snapshot.docs.map(doc => {
+    el.innerHTML = docs.map(doc => {
         const e = doc.data();
         return `
             <div class="row">
                 <div class="row-info">
-                    <h3>${e.nome}</h3>
-                    <div class="meta">${e.categoria} · ${[e.cidade, e.estado].filter(Boolean).join('-') || 'sem local'} · ${e.whatsapp}</div>
-                    <div class="desc">${e.descricao || ''}</div>
+                    <h3>${esc(e.nome)}</h3>
+                    <div class="meta">${esc(e.categoria)} · ${esc([e.cidade, e.estado].filter(Boolean).join('-') || 'sem local')} · ${esc(e.whatsapp)}</div>
+                    <div class="desc">${esc(e.descricao || '')}</div>
                 </div>
                 <div class="row-actions">
                     <button class="btn-approve" onclick="aprovarEmpresa('${doc.id}')">Aprovar</button>
@@ -391,21 +726,24 @@ function renderPendentes(snapshot){
     }).join('');
 }
 
-function renderAprovadas(snapshot){
-    document.getElementById('countAprovadas').textContent = snapshot.size;
+/* ========== RENDER: APROVADAS ========== */
+
+function renderAprovadas(){
+    const docs = cacheAprovadas.filter(d => passaBusca(d.data().nome));
     const el = document.getElementById('tab-aprovadas');
-    if(snapshot.empty){
+    if(docs.length === 0){
         el.innerHTML = '<div class="empty">NENHUMA EMPRESA APROVADA AINDA.</div>';
         return;
     }
-    el.innerHTML = snapshot.docs.map(doc => {
+    el.innerHTML = docs.map(doc => {
         const e = doc.data();
+        const st = statusAssinatura(e);
         return `
             <div class="row">
                 <div class="row-info">
-                    <h3>${e.nome}</h3>
-                    <div class="meta">${e.categoria} · ${[e.cidade, e.estado].filter(Boolean).join('-') || 'sem local'} · ${e.whatsapp} · ⭐ ${(e.avaliacao_media || 0).toFixed(1)}</div>
-                    <div class="desc">${e.descricao || ''}</div>
+                    <h3>${esc(e.nome)} ${e.fundador ? '<span class="badge-fundador">FUNDADOR</span>' : ''}</h3>
+                    <div class="meta">${esc(e.categoria)} · ${esc([e.cidade, e.estado].filter(Boolean).join('-') || 'sem local')} · ${esc(e.whatsapp)} · ⭐ ${(e.avaliacao_media || 0).toFixed(1)} · <span class="status-tag status-${st.key}">${st.label.toUpperCase()}</span></div>
+                    <div class="desc">${esc(e.descricao || '')}</div>
                 </div>
                 <div class="row-actions">
                     <label class="toggle-label">
@@ -425,51 +763,55 @@ function renderAprovadas(snapshot){
     }).join('');
 }
 
-function renderDesativadas(snapshot){
-    document.getElementById('countDesativadas').textContent = snapshot.size;
+/* ========== RENDER: DESATIVADAS ========== */
+
+function renderDesativadas(){
+    const docs = cacheDesativadas.filter(d => passaBusca(d.data().nome));
     const el = document.getElementById('tab-desativadas');
-    if(snapshot.empty){
+    if(docs.length === 0){
         el.innerHTML = '<div class="empty">NENHUMA EMPRESA DESATIVADA.</div>';
         return;
     }
-    el.innerHTML = snapshot.docs.map(doc => {
+    el.innerHTML = docs.map(doc => {
         const e = doc.data();
         return `
             <div class="row">
                 <div class="row-info">
-                    <h3>${e.nome}</h3>
-                    <div class="meta">${e.categoria} · ${[e.cidade, e.estado].filter(Boolean).join('-') || 'sem local'} · ${e.whatsapp}</div>
-                    <div class="desc">${e.descricao || ''}</div>
+                    <h3>${esc(e.nome)}</h3>
+                    <div class="meta">${esc(e.categoria)} · ${esc([e.cidade, e.estado].filter(Boolean).join('-') || 'sem local')} · ${esc(e.whatsapp)}</div>
+                    <div class="desc">${esc(e.descricao || '')}</div>
                 </div>
                 <div class="row-actions">
                     <button class="btn-approve" onclick="reativarEmpresa('${doc.id}')">Reativar</button>
-                    <button class="btn-delete" onclick="excluirEmpresa('${doc.id}', '${(e.nome || '').replace(/'/g, "\\'")}')">Excluir</button>
+                    <button class="btn-delete" onclick="excluirEmpresa('${doc.id}', '${esc(e.nome || '').replace(/'/g, "\\'")}')">Excluir</button>
                 </div>
             </div>
         `;
     }).join('');
 }
 
-function renderLeads(snapshot){
-    document.getElementById('countLeads').textContent = snapshot.size;
+/* ========== RENDER: LEADS ========== */
+
+function renderLeads(){
     const el = document.getElementById('tab-leads');
-    if(snapshot.empty){
+    if(cacheLeads.length === 0){
         el.innerHTML = '<div class="empty">NENHUM PEDIDO AINDA.</div>';
         return;
     }
-    el.innerHTML = snapshot.docs.map(doc => {
+    el.innerHTML = cacheLeads.map(doc => {
         const l = doc.data();
         const statusClass = l.status === 'atendido' ? 'status-atendido' : 'status-novo';
         const dataStr = l.criado_em && l.criado_em.toDate ? l.criado_em.toDate().toLocaleString('pt-BR') : '—';
+        const waDigits = soDigitos(l.whatsapp);
         return `
             <div class="row">
                 <div class="row-info">
-                    <h3>${l.categoria || 'Sem categoria'}</h3>
-                    <div class="meta">${dataStr} · <span class="status-tag ${statusClass}">${(l.status || 'novo').toUpperCase()}</span></div>
-                    <div class="desc">${l.descricao || ''}</div>
+                    <h3>${esc(l.categoria || 'Sem categoria')}</h3>
+                    <div class="meta">${dataStr} · <span class="status-tag ${statusClass}">${esc((l.status || 'novo').toUpperCase())}</span></div>
+                    <div class="desc">${esc(l.descricao || '')}</div>
                 </div>
                 <div class="row-actions">
-                    <a class="btn-wa" href="https://wa.me/${l.whatsapp}" target="_blank">WhatsApp</a>
+                    ${waDigits ? `<a class="btn-wa" href="https://wa.me/${waDigits}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
                     ${l.status !== 'atendido' ? `<button class="btn-approve" onclick="marcarAtendido('${doc.id}')">Marcar atendido</button>` : ''}
                 </div>
             </div>
@@ -477,7 +819,260 @@ function renderLeads(snapshot){
     }).join('');
 }
 
-/* ---------- AÇÕES ---------- */
+/* ========== RENDER: PAGAMENTOS ========== */
+
+function filtrarPagamentos(filtro, btn){
+    filtroPagamentosAtual = filtro;
+    document.querySelectorAll('#panel-pagamentos .chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    renderPagamentos();
+}
+
+function renderPagamentos(){
+    const comAssinatura = cacheEmpresasTodas.filter(d => temHistoricoDeAssinatura(d.data()));
+
+    const contagens = { todas: comAssinatura.length, ativa: 0, pendente: 0, atrasada: 0, cancelada: 0 };
+    comAssinatura.forEach(d => {
+        const st = statusAssinatura(d.data());
+        if(contagens[st.key] !== undefined) contagens[st.key]++;
+    });
+    document.getElementById('cntTodas').textContent = contagens.todas;
+    document.getElementById('cntAtiva').textContent = contagens.ativa;
+    document.getElementById('cntPendente').textContent = contagens.pendente;
+    document.getElementById('cntAtrasada').textContent = contagens.atrasada;
+    document.getElementById('cntCancelada').textContent = contagens.cancelada;
+
+    const badgeAtr = document.getElementById('badgeAtrasadas');
+    if(contagens.atrasada > 0){ badgeAtr.hidden = false; badgeAtr.textContent = contagens.atrasada > 99 ? '99+' : contagens.atrasada; }
+    else badgeAtr.hidden = true;
+
+    let docs = comAssinatura.filter(d => passaBusca(d.data().nome));
+    if(filtroPagamentosAtual !== 'todas'){
+        docs = docs.filter(d => statusAssinatura(d.data()).key === filtroPagamentosAtual);
+    }
+
+    const el = document.getElementById('tab-pagamentos');
+    if(docs.length === 0){
+        el.innerHTML = '<div class="empty">NENHUMA EMPRESA NESSA SITUAÇÃO.</div>';
+        return;
+    }
+
+    el.innerHTML = docs.map(doc => {
+        const e = doc.data();
+        const st = statusAssinatura(e);
+        const preco = precoPadraoEmpresa(e);
+        const dataStr = e.criado_em && e.criado_em.toDate ? e.criado_em.toDate().toLocaleDateString('pt-BR') : '—';
+        const waDigits = soDigitos(e.whatsapp);
+        const podeCancel = !!e.assinatura_id && st.key !== 'cancelada';
+        return `
+            <div class="row">
+                <div class="row-info">
+                    <h3>${esc(e.nome)} ${e.fundador ? '<span class="badge-fundador">FUNDADOR</span>' : ''}</h3>
+                    <div class="meta">
+                        <span class="status-tag status-${st.key}">${st.label.toUpperCase()}</span>
+                        · ${esc(e.categoria)} · ${formatarBRL(preco)}/mês · cadastro em ${dataStr}
+                    </div>
+                    <div class="desc mono" style="font-size:11px;">ID assinatura: ${esc(e.assinatura_id || '—')}</div>
+                </div>
+                <div class="row-actions">
+                    ${waDigits ? `<a class="btn-wa" href="https://wa.me/${waDigits}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
+                    ${st.key !== 'atrasada' ? `<button class="btn-flag" onclick="marcarAtrasoManual('${doc.id}', '${esc(e.nome).replace(/'/g, "\\'")}', true)">Marcar atrasada</button>` : `<button class="btn-approve" onclick="marcarAtrasoManual('${doc.id}', '${esc(e.nome).replace(/'/g, "\\'")}', false)">Resolver atraso</button>`}
+                    ${podeCancel ? `<button class="btn-cancel-sub" onclick="cancelarAssinatura('${doc.id}', '${esc(e.nome).replace(/'/g, "\\'")}')">Cancelar assinatura</button>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function exportarPagamentosCSV(){
+    const comAssinatura = cacheEmpresasTodas.filter(d => temHistoricoDeAssinatura(d.data()));
+    if(comAssinatura.length === 0){
+        mostrarToast('Não há dados de pagamento para exportar.', 'erro');
+        return;
+    }
+    const linhas = [['Nome', 'Categoria', 'Status', 'Valor mensal', 'Fundador', 'WhatsApp', 'Assinatura ID', 'Cadastro'].join(';')];
+    comAssinatura.forEach(doc => {
+        const e = doc.data();
+        const st = statusAssinatura(e);
+        const dataStr = e.criado_em && e.criado_em.toDate ? e.criado_em.toDate().toLocaleDateString('pt-BR') : '';
+        linhas.push([
+            e.nome || '', e.categoria || '', st.label, precoPadraoEmpresa(e).toFixed(2).replace('.', ','),
+            e.fundador ? 'Sim' : 'Não', e.whatsapp || '', e.assinatura_id || '', dataStr
+        ].map(v => String(v).replace(/;/g, ',')).join(';'));
+    });
+    const blob = new Blob(['\ufeff' + linhas.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'zoons-pagamentos-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+/* ========== RENDER: DASHBOARD GERAL ========== */
+
+let chartCadastrosInst = null;
+let chartStatusInst = null;
+
+function renderDashboard(){
+    const total = cacheEmpresasTodas.length;
+    document.getElementById('kpiTotal').textContent = total;
+
+    const comAssinatura = cacheEmpresasTodas.filter(d => temHistoricoDeAssinatura(d.data()));
+    let ativos = 0, mrr = 0, atrasadas = 0;
+    comAssinatura.forEach(d => {
+        const e = d.data();
+        const st = statusAssinatura(e);
+        if(st.key === 'ativa'){ ativos++; mrr += precoPadraoEmpresa(e); }
+        if(st.key === 'atrasada') atrasadas++;
+    });
+
+    document.getElementById('kpiAssinantes').textContent = ativos;
+    document.getElementById('kpiAssinantesSub').textContent = atrasadas > 0 ? atrasadas + ' atrasada(s)' : 'em dia';
+    document.getElementById('kpiTotalSub').textContent = total + ' no total, ' + comAssinatura.length + ' já assinaram o Destaque';
+    document.getElementById('walletMRR').textContent = formatarBRL(mrr);
+    document.getElementById('walletAssinantes').textContent = ativos + ' assinante(s) ativo(s)';
+
+    renderChartCadastros();
+    renderChartStatus(comAssinatura);
+    renderAtencao(comAssinatura);
+}
+
+function renderChartCadastros(){
+    const hoje = new Date();
+    const labels = [];
+    const buckets = {};
+    for(let i = 5; i >= 0; i--){
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        const key = d.getFullYear() + '-' + d.getMonth();
+        buckets[key] = 0;
+        labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', ''));
+    }
+    const chaves = Object.keys(buckets);
+
+    cacheEmpresasTodas.forEach(doc => {
+        const e = doc.data();
+        if(!e.criado_em || !e.criado_em.toDate) return;
+        const d = e.criado_em.toDate();
+        const key = d.getFullYear() + '-' + d.getMonth();
+        if(buckets[key] !== undefined) buckets[key]++;
+    });
+
+    const dados = chaves.map(k => buckets[k]);
+    const ctx = document.getElementById('chartCadastros').getContext('2d');
+
+    if(chartCadastrosInst){
+        chartCadastrosInst.data.labels = labels;
+        chartCadastrosInst.data.datasets[0].data = dados;
+        chartCadastrosInst.update();
+        return;
+    }
+
+    chartCadastrosInst = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                data: dados,
+                backgroundColor: '#12A05C',
+                borderRadius: 7,
+                maxBarThickness: 36
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0, color: '#5C7480', font: { size: 11 } }, grid: { color: '#E4EDE9' } },
+                x: { ticks: { color: '#5C7480', font: { size: 11 } }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+function renderChartStatus(comAssinatura){
+    const wrap = document.getElementById('chartStatusWrap');
+
+    if(comAssinatura.length === 0){
+        if(chartStatusInst){ chartStatusInst.destroy(); chartStatusInst = null; }
+        wrap.innerHTML = '<div class="chart-empty">Ainda nenhuma empresa assinou o<br>Plano Destaque.</div>';
+        return;
+    }
+    if(!document.getElementById('chartStatus')){
+        wrap.innerHTML = '<canvas id="chartStatus"></canvas>';
+    }
+
+    const contagens = { ativa: 0, pendente: 0, atrasada: 0, cancelada: 0 };
+    comAssinatura.forEach(d => {
+        const st = statusAssinatura(d.data());
+        if(contagens[st.key] !== undefined) contagens[st.key]++;
+    });
+
+    const labels = ['Em dia', 'Aguardando', 'Atrasada', 'Cancelada'];
+    const dados = [contagens.ativa, contagens.pendente, contagens.atrasada, contagens.cancelada];
+    const cores = ['#12A05C', '#B8841C', '#D64545', '#9AABA3'];
+    const ctx = document.getElementById('chartStatus').getContext('2d');
+
+    if(chartStatusInst){
+        chartStatusInst.data.datasets[0].data = dados;
+        chartStatusInst.update();
+        return;
+    }
+
+    chartStatusInst = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: dados, backgroundColor: cores, borderWidth: 0 }] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, color: '#5C7480' } } }
+        }
+    });
+}
+
+function renderAtencao(comAssinatura){
+    const el = document.getElementById('atencaoList');
+    const problemas = comAssinatura.filter(d => {
+        const st = statusAssinatura(d.data());
+        return st.key === 'atrasada' || st.key === 'pendente';
+    }).sort((a, b) => {
+        const sa = statusAssinatura(a.data()).key === 'atrasada' ? 0 : 1;
+        const sb = statusAssinatura(b.data()).key === 'atrasada' ? 0 : 1;
+        return sa - sb;
+    }).slice(0, 6);
+
+    if(problemas.length === 0){
+        el.innerHTML = '<div style="padding:10px 0;">Nenhuma pendência no momento. 🎉</div>';
+        return;
+    }
+
+    el.innerHTML = problemas.map(doc => {
+        const e = doc.data();
+        const st = statusAssinatura(e);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);">
+            <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;color:var(--ink);">${esc(e.nome)}</span>
+            <span class="status-tag status-${st.key}">${st.label.toUpperCase()}</span>
+        </div>`;
+    }).join('');
+}
+
+function renderFundadores(total){
+    const pct = Math.min(100, Math.round((total / LIMITE_FUNDADORES) * 100));
+    document.getElementById('founderLabel').textContent = total + ' de ' + LIMITE_FUNDADORES + ' usadas';
+    document.getElementById('founderBarFill').style.width = pct + '%';
+    document.getElementById('walletFundadores').textContent = total + '/' + LIMITE_FUNDADORES + ' fundadores';
+
+    const fundadoresDocs = cacheEmpresasTodas.filter(d => d.data().fundador).slice(0, 5);
+    const stack = document.getElementById('founderStack');
+    let html = fundadoresDocs.map(d => `<div class="founder-avatar" title="${esc(d.data().nome)}">${esc(iniciais(d.data().nome))}</div>`).join('');
+    const resto = total - fundadoresDocs.length;
+    if(resto > 0) html += `<div class="founder-avatar more">+${resto}</div>`;
+    stack.innerHTML = html || '<span style="font-size:12px;color:var(--muted);">Nenhum fundador ainda.</span>';
+}
+
+/* ========== AÇÕES ========== */
 
 function aprovarEmpresa(id){
     db.collection('empresas').doc(id).update({ status: 'aprovado' });
@@ -491,27 +1086,16 @@ function reativarEmpresa(id){
     db.collection('empresas').doc(id).update({ status: 'aprovado' });
 }
 
-function excluirEmpresa(id, nome){
-    abrirConfirm(
+async function excluirEmpresa(id, nome){
+    const ok = await confirmarAcaoAdmin(
         `Excluir "${nome}"?`,
         'Essa ação não pode ser desfeita — a empresa e todos os dados dela serão apagados permanentemente.',
-        () => db.collection('empresas').doc(id).delete()
+        'Excluir'
     );
-}
-
-function abrirConfirm(titulo, texto, aoConfirmar){
-    document.getElementById('confirmTitle').textContent = titulo;
-    document.getElementById('confirmText').textContent = texto;
-    const okBtn = document.getElementById('confirmOkBtn');
-    okBtn.onclick = () => {
-        aoConfirmar();
-        fecharConfirm();
-    };
-    document.getElementById('confirmOverlay').classList.add('open');
-}
-
-function fecharConfirm(){
-    document.getElementById('confirmOverlay').classList.remove('open');
+    if(!ok) return;
+    db.collection('empresas').doc(id).delete()
+        .then(() => mostrarToast('Empresa excluída.'))
+        .catch(err => mostrarToast('Erro ao excluir: ' + err.message, 'erro'));
 }
 
 function toggleCampo(id, campo, valor){
@@ -520,6 +1104,44 @@ function toggleCampo(id, campo, valor){
 
 function marcarAtendido(id){
     db.collection('leads').doc(id).update({ status: 'atendido' });
+}
+
+async function marcarAtrasoManual(id, nome, valor){
+    if(valor){
+        const ok = await confirmarAcaoAdmin(
+            `Marcar "${nome}" como atrasada?`,
+            'Use isso quando você souber, por fora do sistema, que o pagamento falhou e o Mercado Pago ainda não atualizou o status. A empresa vai aparecer na lista de atrasadas até você resolver.',
+            'Marcar atrasada'
+        );
+        if(!ok) return;
+    }
+    db.collection('empresas').doc(id).update({ atraso_manual: valor })
+        .then(() => mostrarToast(valor ? 'Marcada como atrasada.' : 'Atraso resolvido.'))
+        .catch(err => mostrarToast('Erro: ' + err.message, 'erro'));
+}
+
+async function cancelarAssinatura(id, nome){
+    const ok = await confirmarAcaoAdmin(
+        `Cancelar assinatura de "${nome}"?`,
+        'A empresa deixa de ser cobrada todo mês no Mercado Pago e perde o selo ⭐ Destaque imediatamente. Se ela quiser voltar, vai precisar assinar de novo pelo site (sem preço de fundador garantido).',
+        'Cancelar assinatura'
+    );
+    if(!ok) return;
+
+    try {
+        const idToken = await auth.currentUser.getIdToken();
+        const resp = await fetch(`${NETLIFY_FUNCTIONS_BASE}/cancelar-assinatura`, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ empresaId: id })
+        });
+        const data = await resp.json();
+        if(!resp.ok) throw new Error(data.error || 'Erro desconhecido');
+        mostrarToast('Assinatura cancelada com sucesso.');
+    } catch(err){
+        console.error(err);
+        mostrarToast('Não foi possível cancelar: ' + err.message, 'erro');
+    }
 }
 
 </script>
