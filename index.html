@@ -1900,11 +1900,13 @@ function enviarAvaliacao(empresaId){
         })
         .then(() => {
             showSuccess(avaliacaoExistente ? 'Avaliação atualizada!' : 'Avaliação enviada!', 'Obrigado por ajudar outras pessoas a encontrar bons profissionais.');
-            fetch(`${NETLIFY_FUNCTIONS_BASE}/recalcular-avaliacoes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ empresaId })
-            }).catch(err => console.error('Erro ao recalcular avaliações:', err));
+            user.getIdToken().then(idToken => {
+                fetch(`${NETLIFY_FUNCTIONS_BASE}/recalcular-avaliacoes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+                    body: JSON.stringify({ empresaId })
+                }).catch(err => console.error('Erro ao recalcular avaliações:', err));
+            }).catch(err => console.error('Erro ao obter token:', err));
         })
         .catch(err => {
             erroEl.textContent = traduzErroFirebase(err);
