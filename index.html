@@ -1936,6 +1936,46 @@ async function carregarCompleta(versao){
     }
 }
 
+/* Distância de edição (Levenshtein) entre duas palavras já normalizadas — usada
+   só pra tolerar erro de digitação (ex.: "eletrisista" ~ "eletricista"). */
+function distanciaEdicao(a, b){
+    const la = a.length, lb = b.length;
+    if(Math.abs(la - lb) > 3) return 99; // tamanhos muito diferentes: nem vale a pena calcular
+    const dp = new Array(lb + 1);
+    for(let j = 0; j <= lb; j++) dp[j] = j;
+    for(let i = 1; i <= la; i++){
+        let diag = dp[0];
+        dp[0] = i;
+        for(let j = 1; j <= lb; j++){
+            const temp = dp[j];
+            dp[j] = a[i - 1] === b[j - 1] ? diag : 1 + Math.min(diag, dp[j], dp[j - 1]);
+            diag = temp;
+        }
+    }
+    return dp[lb];
+}
+
+/* Essa palavra da busca "bate" nesse texto? Aceita substring direta (match parcial,
+   ex.: "cel" dentro de "celular") e, pra palavras com 4+ letras, também aceita
+   pequenos erros de digitação (1 erro até 5 letras, 2 erros com 6+ letras). */
+function palavraBateTexto(palavra, texto){
+    if(texto.includes(palavra)) return true;
+    if(palavra.length < 4) return false;
+    const tolerancia = palavra.length <= 5 ? 1 : 2;
+    return texto.split(/[^a-z0-9]+/).some(p =>
+        p.length >= 3 && Math.abs(p.length - palavra.length) <= tolerancia && distanciaEdicao(palavra, p) <= tolerancia
+    );
+}
+
+/* Uma empresa entra no resultado se CADA palavra digitada bater em algum lugar
+   (nome, categoria ou descrição) — não precisa ser a frase inteira igualzinha,
+   nem estar tudo junto, nem escrita 100% certa. */
+function empresaBateBusca(e, termo){
+    const texto = norm(e.nome) + ' ' + norm(e.categoria) + ' ' + norm(e.descricao);
+    const palavras = termo.split(/\s+/).filter(Boolean);
+    return palavras.every(p => palavraBateTexto(p, texto));
+}
+
 function prepararListaFiltrada(){
     let lista = allEmpresas.map(e => {
         if(userLat !== null && typeof e.lat === 'number' && typeof e.lng === 'number'){
@@ -1946,11 +1986,7 @@ function prepararListaFiltrada(){
         return e;
     });
     if(termoAplicado){
-        lista = lista.filter(e =>
-            norm(e.nome).includes(termoAplicado) ||
-            norm(e.categoria).includes(termoAplicado) ||
-            norm(e.descricao).includes(termoAplicado)
-        );
+        lista = lista.filter(e => empresaBateBusca(e, termoAplicado));
     }
     if(userLat !== null){
         lista = lista.slice().sort((a, b) => {
