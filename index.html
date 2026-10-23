@@ -1100,7 +1100,7 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 .search-band-lead{color:#3F5865!important}
 
 /* Legibilidade da navegação sobre a foto: véu escuro suave no topo */
-html body #siteHeader#siteHeader::before{display:block!important;content:""!important;position:absolute!important;z-index:-1!important;pointer-events:none!important;inset:-16px -40px -26px -40px!important;border-radius:0!important;background:linear-gradient(180deg,rgba(6,30,28,.55),rgba(6,30,28,0))!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html body #siteHeader#siteHeader::before{display:block!important;content:""!important;position:absolute!important;z-index:-1!important;pointer-events:none!important;inset:-16px -20px -26px -20px!important;border-radius:0!important;background:linear-gradient(180deg,rgba(6,30,28,.55),rgba(6,30,28,0))!important;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent)!important;mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 html body #siteHeader .nav-links a,html body #siteHeader .logo{text-shadow:0 1px 3px rgba(0,20,16,.55),0 1px 14px rgba(0,20,16,.45)!important}
 
 /* ===== Navegação móvel simplificada: logo + Entrar + menu ===== */
@@ -1364,7 +1364,15 @@ html body #siteHeader#siteHeader:not(.scrolled) .menu-toggle{
    fazia o modal de "Entrar"/"Cadastrar empresa" abrir levemente descentrado
    em celulares de verdade. O carrossel continua rolando normalmente — só a
    página em si deixa de ter esse scroll lateral fantasma. */
-html,body{overflow-x:hidden!important;max-width:100%!important}
+/* Causa real do vazamento: o véu escuro do header (#siteHeader::before)
+   saía 40px para fora de cada lado. Agora ele fica dentro da tela e o
+   hack html,body{overflow-x:hidden} (que criava uma barra/faixa à direita
+   no desktop) foi removido. */
+@media(max-width:640px){
+  html body #siteHeader#siteHeader::before{inset:-16px -14px -26px -14px!important}
+}
+html{overflow-x:hidden}
+.modal-overlay{left:0;right:0;width:auto;max-width:100%}
 </style>
 </head>
 
