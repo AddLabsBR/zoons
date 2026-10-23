@@ -1092,6 +1092,209 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
   box-shadow:0 0 3px rgba(235,240,242,.55)!important;
 }
 </style>
+<style id="zoons-ux-mobile-v2">
+/* ===== Zoons UX v2 — ajustes de legibilidade, navegação móvel e prioridade da busca ===== */
+/* Contraste levemente maior nos textos secundários */
+:root{--muted:#4A6270}
+.section-lead,.business p,.step p,.adv-card p,.review-item{color:#4A6270}
+.search-band-lead{color:#3F5865!important}
+
+/* Legibilidade da navegação sobre a foto: véu escuro suave no topo */
+html body #siteHeader#siteHeader::before{display:block!important;content:""!important;position:absolute!important;z-index:-1!important;pointer-events:none!important;inset:-16px -40px -26px -40px!important;border-radius:0!important;background:linear-gradient(180deg,rgba(6,30,28,.55),rgba(6,30,28,0))!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html body #siteHeader .nav-links a,html body #siteHeader .logo{text-shadow:0 1px 3px rgba(0,20,16,.55),0 1px 14px rgba(0,20,16,.45)!important}
+
+/* ===== Navegação móvel simplificada: logo + Entrar + menu ===== */
+@media(max-width:640px){
+  html body #siteHeader#siteHeader{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;top:10px!important;width:calc(100% - 28px)!important}
+  html body #siteHeader#siteHeader .menu-toggle{display:flex!important;width:44px!important;height:44px!important;border-radius:50%!important;background:rgba(6,30,28,.28)!important;border:1px solid rgba(255,255,255,.35)!important;order:3}
+  html body #siteHeader#siteHeader .header-right{position:absolute!important;top:calc(100% + 10px)!important;left:0!important;right:0!important;display:none!important;flex-direction:column!important;align-items:stretch!important;gap:12px!important;padding:16px!important;border-radius:22px!important;background:#fff!important;border:1px solid #E1EAE6!important;box-shadow:0 24px 50px -20px rgba(6,30,28,.55)!important;z-index:950}
+  html body #siteHeader#siteHeader .header-right.open{display:flex!important}
+  html body #siteHeader#siteHeader .nav-links{display:flex!important;flex-direction:column!important;gap:2px!important}
+  html body #siteHeader#siteHeader .nav-links a{display:block!important;color:#0F2A33!important;text-shadow:none!important;font-size:16px!important;font-weight:600!important;padding:12px 10px!important;border-radius:12px}
+  html body #siteHeader#siteHeader .nav-links a:active{background:#EEF6F2}
+  html body #siteHeader#siteHeader .nav-links a::after{display:none!important}
+  html body #siteHeader#siteHeader .header-buttons{display:flex!important;flex-direction:column!important;gap:8px!important;border-top:1px solid #E7EEEB;padding-top:12px}
+  html body #siteHeader#siteHeader .btn-login,html body #siteHeader#siteHeader .btn-register{width:100%!important;min-height:48px!important;padding:12px 16px!important;font-size:15px!important;border-radius:999px!important;text-shadow:none!important;justify-content:center!important;transform:none!important;animation:none!important}
+  html body #siteHeader#siteHeader .btn-login{background:#fff!important;color:#0F2A33!important;border:1px solid #D5E2DC!important}
+  html body #siteHeader#siteHeader .btn-register{background:linear-gradient(180deg,#19B36C,#0B7A45)!important;color:#fff!important;border:0!important}
+}
+
+/* ===== Foto principal mais baixa no celular: proposta e busca aparecem antes ===== */
+@media(max-width:900px){
+  html body .hero.hero{height:min(54vw,420px)!important;min-height:0!important;padding:0!important}
+  html body .hero.hero .hero-bg{background-size:100% 100%,cover!important;background-position:center,50% 18%!important}
+}
+@media(max-width:520px){
+  html body .hero.hero{height:clamp(270px,82vw,330px)!important}
+}
+
+/* ===== Busca próxima ao título e com prioridade (celular/tablet) ===== */
+@media(max-width:900px){
+  .hero-copy .search-band{margin:16px 0 18px!important;width:100%}
+  .search-band .search-ticket{max-width:none!important;width:100%!important;padding:5px!important}
+  .search-band-lead{white-space:normal!important;font-size:14px!important;line-height:1.4!important;margin:0 0 8px!important}
+  .search-band .st-ico{width:19px!important;height:19px!important}
+  .search-band .search-ticket input{font-size:16px!important;padding:12px 0!important}
+  .search-band .search-ticket button{min-height:44px!important;padding:11px 20px!important;font-size:15px!important}
+}
+@media(min-width:600px) and (max-width:900px){
+  .search-band .search-ticket{max-width:620px!important}
+}
+
+/* ===== Atalhos rápidos: alvos de toque maiores ===== */
+@media(max-width:900px){
+  html body .intro .qchip,html body .intro .qchip:nth-child(n+5){min-height:40px!important;padding:8px 14px 8px 11px!important;border:1px solid #DCE7E2!important;border-radius:999px!important;background:#fff!important;font-size:14px!important;color:#17343C!important}
+  html body .intro .quick{gap:8px!important;padding-bottom:6px!important}
+}
+
+/* ===== Categorias e filtros: leitura e toque mais fáceis ===== */
+@media(max-width:900px){
+  .category{min-height:96px;padding:14px 6px 12px!important;cursor:pointer}
+  .category p{font-size:13px!important;line-height:1.25!important;color:#17343C}
+  .category .count{font-size:11px!important;color:#4A6270!important}
+  .icon-ring{width:42px!important;height:42px!important}
+  .location-filter select{min-height:50px;font-size:16px!important;color:#0F2A33}
+  .view-toggle button{min-height:44px;padding:10px 22px!important;font-size:15px!important}
+}
+@media(max-width:360px){
+  .categories{gap:6px!important}
+  .category p{font-size:12px!important}
+}
+.category:focus-visible,.view-toggle button:focus-visible,.location-filter select:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+/* ===== Menu movil: botonera centrada Liquid Glass ===== */
+@media(max-width:640px){
+  html body #siteHeader#siteHeader .header-right{left:0!important;right:0!important;width:max-content!important;margin:0 auto!important;max-width:calc(100vw - 28px)!important;padding:8px!important;border-radius:999px!important;background:linear-gradient(135deg,rgba(8,32,26,.28),rgba(8,32,26,.13))!important;border:1px solid rgba(255,255,255,.35)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 -1px 0 rgba(255,255,255,.08),0 18px 44px -22px rgba(0,20,16,.5)!important;-webkit-backdrop-filter:blur(24px) saturate(165%)!important;backdrop-filter:blur(24px) saturate(165%)!important}
+  html body #siteHeader#siteHeader .header-right.open{display:flex!important;animation:zgIn .3s cubic-bezier(.2,.8,.2,1) both}
+  html body #siteHeader#siteHeader .nav-links{display:none!important}
+  html body #siteHeader#siteHeader .header-buttons{flex-direction:row!important;gap:8px!important;background:none!important;border:0!important;padding:0!important}
+  html body #siteHeader#siteHeader .header-buttons .btn-login,
+  html body #siteHeader#siteHeader .header-buttons .btn-register{width:auto!important;min-height:0!important;padding:8px 14px!important;font-size:11.5px!important;font-weight:700!important;letter-spacing:.2px!important;line-height:1.2!important;white-space:nowrap!important;border-radius:999px!important;color:#fff!important;text-shadow:0 1px 3px rgba(0,20,16,.4)!important;background:linear-gradient(135deg,rgba(8,32,26,.38),rgba(8,32,26,.2))!important;border:1px solid rgba(255,255,255,.45)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 8px 22px -10px rgba(0,20,16,.4)!important;-webkit-backdrop-filter:blur(16px) saturate(160%)!important;backdrop-filter:blur(16px) saturate(160%)!important;transition:transform .15s ease!important}
+  html body #siteHeader#siteHeader .header-buttons .btn-login::before,
+  html body #siteHeader#siteHeader .header-buttons .btn-register::before{content:none!important}
+  html body #siteHeader#siteHeader .header-buttons .btn-register{background:linear-gradient(135deg,rgba(27,184,108,.52),rgba(11,122,69,.3))!important;border-color:rgba(160,255,205,.55)!important}
+  html body #siteHeader#siteHeader .header-buttons .btn-login:active,
+  html body #siteHeader#siteHeader .header-buttons .btn-register:active{transform:scale(.96)!important}
+  html body #siteHeader#siteHeader.scrolled .header-right{background:linear-gradient(135deg,rgba(15,42,51,.16),rgba(15,42,51,.08))!important;border-color:rgba(15,42,51,.18)!important}
+  html body #siteHeader#siteHeader.scrolled .header-buttons .btn-login,
+  html body #siteHeader#siteHeader.scrolled .header-buttons .btn-register{background:linear-gradient(135deg,rgba(15,42,51,.32),rgba(15,42,51,.18))!important;border-color:rgba(255,255,255,.35)!important}
+  html body #siteHeader#siteHeader .menu-toggle{width:34px!important;height:34px!important;background:rgba(255,255,255,.55)!important;border:1px solid rgba(15,42,51,.1)!important;-webkit-backdrop-filter:blur(14px) saturate(180%)!important;backdrop-filter:blur(14px) saturate(180%)!important;box-shadow:0 6px 16px -8px rgba(15,42,51,.35),inset 0 1px 0 rgba(255,255,255,.6)!important;gap:4px!important}
+  html body #siteHeader#siteHeader .menu-toggle span{width:14px!important;height:1.6px!important;border-radius:2px!important;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .18s ease!important}
+  html body #siteHeader#siteHeader .menu-toggle.open span:nth-child(1){transform:translateY(5.6px) rotate(45deg)!important}
+  html body #siteHeader#siteHeader .menu-toggle.open span:nth-child(2){opacity:0!important}
+  html body #siteHeader#siteHeader .menu-toggle.open span:nth-child(3){transform:translateY(-5.6px) rotate(-45deg)!important}
+}
+@keyframes zgIn{from{opacity:0;transform:translateY(-8px) scale(.97)}to{opacity:1;transform:none}}
+</style>
+<style id="zoons-menu-liquid-glass-v1">
+/* =====================================================================
+   MENU MÓVEL — dois botões Liquid Glass sem "envoltório", logo abaixo do
+   ícone das três rayitas, com entrada em gelatina (um e depois o outro).
+   Só celular (<=640px). Triplo ID de propósito: pisa os overrides antigos.
+   Usa as propriedades individuais `scale`/`translate` porque as regras
+   antigas fixam `transform:none!important` (que bloquearia a animação).
+   ===================================================================== */
+@media(max-width:640px){
+  /* 1) Sem cápsula: o contêiner fica invisível e ancorado sob o botão de menu */
+  html body #siteHeader#siteHeader#siteHeader .header-right{
+    position:absolute!important;top:calc(100% - 2px)!important;right:0!important;left:auto!important;
+    width:max-content!important;max-width:none!important;margin:0!important;padding:0!important;
+    display:flex!important;flex-direction:column!important;align-items:flex-end!important;gap:0!important;
+    background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+    animation:none!important;
+    opacity:0;visibility:hidden;pointer-events:none;
+    transition:opacity .18s ease,visibility 0s linear .18s}
+  html body #siteHeader#siteHeader#siteHeader .header-right.open{
+    opacity:1;visibility:visible;pointer-events:auto;transition:none}
+  html body #siteHeader#siteHeader#siteHeader .nav-links{display:none!important}
+  html body #siteHeader#siteHeader#siteHeader .header-buttons{
+    display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:8px!important;
+    background:none!important;border:0!important;padding:0!important;margin:0!important}
+
+  /* 2) Botão de vidro líquido, bem transparente */
+  html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-login,
+  html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-register{
+    width:auto!important;min-height:0!important;padding:11px 18px 11px 16px!important;
+    font-size:13.5px!important;font-weight:700!important;letter-spacing:.2px!important;line-height:1.2!important;
+    text-align:center!important;white-space:nowrap!important;border:0!important;border-radius:999px!important;
+    color:#fff!important;
+    text-shadow:0 1px 3px rgba(0,20,16,.75),0 0 12px rgba(0,20,16,.4)!important;
+    background:
+      linear-gradient(180deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.02) 46%,rgba(255,255,255,.06) 100%),
+      linear-gradient(135deg,rgba(10,40,36,.10),rgba(10,40,36,.03))!important;
+    background-size:100% 100%!important;background-position:0 0!important;background-repeat:no-repeat!important;
+    -webkit-backdrop-filter:blur(8px) saturate(170%) brightness(1.03)!important;
+    backdrop-filter:blur(8px) saturate(170%) brightness(1.03)!important;
+    box-shadow:
+      inset 0 1px 1px rgba(255,255,255,.6),
+      inset 0 -1px 1px rgba(255,255,255,.14),
+      inset 0 0 12px rgba(255,255,255,.06),
+      0 12px 24px -14px rgba(0,20,16,.4)!important;
+    transform-origin:50% 0;   /* nasce debaixo do centro do menu */
+    scale:.2 .2;translate:0 -14px;           /* estado fechado */
+    transition:scale .16s ease,filter .16s ease!important}
+  html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-register{
+    background:
+      linear-gradient(180deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.02) 46%,rgba(255,255,255,.06) 100%),
+      linear-gradient(135deg,rgba(32,196,120,.20),rgba(11,122,69,.05))!important;
+    text-shadow:0 1px 3px rgba(0,40,24,.75),0 0 12px rgba(0,40,24,.4)!important}
+  html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-login{
+    padding:7px 14px 7px 12px!important;font-size:12.5px!important}
+  html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-login::before{width:16px!important;height:16px!important;margin-right:7px!important;vertical-align:-3px!important}
+  html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-login:active,
+  html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-register:active{scale:.94 .94!important;filter:brightness(1.12)}
+
+  /* 3) Ícones (a regra antiga os zerava com content:none) */
+  html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-login::before,
+  html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-register::before{
+    content:""!important;display:inline-block!important;width:18px!important;height:18px!important;
+    margin:0 9px 0 0!important;vertical-align:-4px!important;
+    background:currentColor!important;
+    -webkit-mask:var(--zi) center/contain no-repeat!important;mask:var(--zi) center/contain no-repeat!important;
+    filter:drop-shadow(0 1px 2px rgba(0,20,16,.55))}
+  /* Entrar / Sair → muñequito (login) */
+  html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-login{
+    --zi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='7.5' r='4'/%3E%3Cpath d='M4.5 21c0-4.4 3.4-7 7.5-7s7.5 2.6 7.5 7'/%3E%3C/svg%3E")}
+  /* Cadastrar empresa → prédio (empresa) */
+  html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-register{
+    --zi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 21V4.5A1.5 1.5 0 0 1 6.5 3h8A1.5 1.5 0 0 1 16 4.5V21'/%3E%3Cpath d='M16 10h2.5A1.5 1.5 0 0 1 20 11.5V21'/%3E%3Cpath d='M9 7.5h3M9 11.5h3M9 15.5h3M3 21h18'/%3E%3C/svg%3E")}
+  /* Botões extras (só aparecem com empresa logada) */
+  html body #siteHeader#siteHeader#siteHeader .header-buttons #btnAnuncios{
+    --zi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6h11M9 12h11M9 18h11'/%3E%3Cpath d='M4 6h.01M4 12h.01M4 18h.01'/%3E%3C/svg%3E")}
+  html body #siteHeader#siteHeader#siteHeader .header-buttons #btnPlano{
+    --zi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z'/%3E%3C/svg%3E")}
+
+  /* 4) Entrada em gelatina: primeiro Entrar, depois Cadastrar empresa */
+  html body #siteHeader#siteHeader#siteHeader .header-right.open .header-buttons .btn-login,
+  html body #siteHeader#siteHeader#siteHeader .header-right.open .header-buttons .btn-register{
+    animation:zJellyDrop .9s cubic-bezier(.25,.8,.3,1) both!important}
+  html body #siteHeader#siteHeader#siteHeader .header-right.open .header-buttons .btn-login{animation-delay:.04s!important}
+  html body #siteHeader#siteHeader#siteHeader .header-right.open .header-buttons .btn-register{animation-delay:.24s!important}
+  /* Empresa logada: 4 botões em cascata, na ordem em que aparecem */
+  html body #siteHeader#siteHeader#siteHeader .header-right.open .header-buttons:has(#btnPlano:not([style*="none"])) #btnAnuncios{animation-delay:.04s!important}
+  html body #siteHeader#siteHeader#siteHeader .header-right.open .header-buttons:has(#btnPlano:not([style*="none"])) #btnPlano{animation-delay:.16s!important}
+  html body #siteHeader#siteHeader#siteHeader .header-right.open .header-buttons:has(#btnPlano:not([style*="none"])) .btn-login:not(#btnPlano):not(#btnAnuncios){animation-delay:.28s!important}
+  html body #siteHeader#siteHeader#siteHeader .header-right.open .header-buttons:has(#btnPlano:not([style*="none"])) .btn-register{animation-delay:.40s!important}
+}
+/* Gelatina: cai, achata, estica, e vai assentando */
+@keyframes zJellyDrop{
+  0%  {scale:.2 .2;   translate:0 -14px}
+  28% {scale:1.20 .76;translate:0 5px}
+  46% {scale:.88 1.15;translate:0 -3px}
+  62% {scale:1.07 .93;translate:0 1px}
+  78% {scale:.97 1.04;translate:0 0}
+  100%{scale:1 1;     translate:0 0}
+}
+@media (prefers-reduced-motion:reduce){
+  html body #siteHeader#siteHeader#siteHeader .header-right.open .header-buttons .btn-login,
+  html body #siteHeader#siteHeader#siteHeader .header-right.open .header-buttons .btn-register,
+  html body #siteHeader#siteHeader#siteHeader .header-right.open .header-buttons .btn-login:not(#btnPlano):not(#btnAnuncios){animation:none!important;scale:1 1;translate:0 0}
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  @media(max-width:640px){html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-login,html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-register{background:rgba(10,40,36,.55)!important}}
+}
+</style>
 </head>
 
 <body>
@@ -2044,6 +2247,8 @@ function toggleMobileMenu(){
     btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
 }
 
+
+document.addEventListener('click',function(e){const m=document.getElementById('headerRight'),b=document.getElementById('menuToggle');if(!m||!m.classList.contains('open'))return;if(b.contains(e.target))return;if(!m.contains(e.target)||e.target.closest('button'))closeMobileMenu();});
 function closeMobileMenu(){
     document.getElementById('headerRight').classList.remove('open');
     const btn = document.getElementById('menuToggle');
@@ -3337,5 +3542,23 @@ document.addEventListener('keydown', (e) => {
 
 </script>
 
+<script id="zoons-ux-mobile-v2-js">
+/* Celular/tablet: leva a busca para logo abaixo do título (mesmo elemento, mesmas funções) */
+(function(){
+  var band=document.querySelector('.search-band'); if(!band) return;
+  var home=band.parentNode, next=band.nextSibling;
+  var mq=window.matchMedia('(max-width:900px)');
+  function place(){
+    var h1=document.querySelector('.intro .hero-copy h1');
+    if(mq.matches && h1){ if(band.previousElementSibling!==h1) h1.insertAdjacentElement('afterend',band); band.classList.add('in'); }
+    else if(band.parentNode!==home){ home.insertBefore(band,next); }
+  }
+  place(); (mq.addEventListener?mq.addEventListener('change',place):mq.addListener(place));
+  document.querySelectorAll('.category').forEach(function(c){ if(!c.hasAttribute('tabindex')){c.setAttribute('tabindex','0');c.setAttribute('role','button');}
+    c.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();c.click();}}); });
+  document.addEventListener('click',function(e){var m=document.getElementById('headerRight'),t=document.getElementById('menuToggle');
+    if(m&&m.classList.contains('open')&&!m.contains(e.target)&&!t.contains(e.target)&&typeof closeMobileMenu==='function') closeMobileMenu();});
+})();
+</script>
 </body>
 </html>
