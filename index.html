@@ -1357,6 +1357,14 @@ html body #siteHeader#siteHeader:not(.scrolled) .menu-toggle{
   transform:rotate(90deg);
 }
 .modal-close:active{transform:rotate(90deg) scale(.88)}
+
+/* ===== Corrige um vazamento horizontal (o carrossel de categorias rápidas
+   usa margem negativa pra "sangrar" até a borda, e isso fazia a PÁGINA
+   inteira ficar uns pixels mais larga que a tela). Esse vazamento é o que
+   fazia o modal de "Entrar"/"Cadastrar empresa" abrir levemente descentrado
+   em celulares de verdade. O carrossel continua rolando normalmente — só a
+   página em si deixa de ter esse scroll lateral fantasma. */
+html,body{overflow-x:hidden!important;max-width:100%!important}
 </style>
 </head>
 
