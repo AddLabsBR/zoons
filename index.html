@@ -1295,6 +1295,69 @@ html body #siteHeader .nav-links a,html body #siteHeader .logo{text-shadow:0 1px
   @media(max-width:640px){html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-login,html body #siteHeader#siteHeader#siteHeader .header-buttons .btn-register{background:rgba(10,40,36,.55)!important}}
 }
 </style>
+
+<style id="zoons-modal-unroll-v1">
+/* ===== Janela de login/cadastro (modal): abre "desenrolando" de cima pra
+   baixo, como uma folha de papel se soltando, e termina com uma leve
+   quicada — igual às janelas do macOS. ===== */
+.modal-overlay{background:rgba(15,42,51,0)}
+.modal-overlay.open,.modal-overlay.active{
+  animation:zModalScrim .22s ease-out forwards;
+}
+@keyframes zModalScrim{
+  from{background:rgba(15,42,51,0)}
+  to{background:rgba(15,42,51,.62)}
+}
+.modal-overlay.open .modal,
+.modal-overlay.active .modal{
+  transform-origin:50% 0%;
+  animation:zModalUnroll .64s cubic-bezier(.22,.9,.32,1) both;
+  will-change:transform,opacity;
+}
+@keyframes zModalUnroll{
+  0%{   opacity:0; transform:scaleY(.05)  scaleX(.92) translateY(-6px); filter:blur(1.5px) }
+  10%{  opacity:1 }
+  42%{  opacity:1; transform:scaleY(1.08) scaleX(1.015) translateY(0);  filter:blur(0) }
+  60%{  transform:scaleY(.96)  scaleX(.99)  translateY(0) }
+  76%{  transform:scaleY(1.03) scaleX(1.004) translateY(0) }
+  88%{  transform:scaleY(.99)  scaleX(.999) translateY(0) }
+  100%{ transform:scaleY(1)   scaleX(1)    translateY(0) }
+}
+@media (prefers-reduced-motion:reduce){
+  .modal-overlay.open,.modal-overlay.active{animation:none!important;background:rgba(15,42,51,.62)!important}
+  .modal-overlay.open .modal,.modal-overlay.active .modal{animation:none!important}
+}
+
+/* ===== Ícone das "três rayitas" (menu mobile): fundo transparente, igual
+   aos botões Entrar/Cadastrar empresa — só a borda fina marca a forma. ===== */
+html body #siteHeader#siteHeader .menu-toggle,
+html body #siteHeader#siteHeader.scrolled .menu-toggle,
+html body #siteHeader#siteHeader:not(.scrolled) .menu-toggle{
+  background:transparent!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  border:1px solid rgba(255,255,255,.55)!important;
+  box-shadow:none!important;
+}
+
+/* ===== Botão de fechar o modal (X): minimalista, sem círculo de fundo,
+   só o traço — acende suavemente ao passar o mouse/tocar. ===== */
+.modal-close{
+  display:flex;align-items:center;justify-content:center;
+  background:transparent!important;
+  color:var(--muted);
+  width:32px;height:32px;
+  padding:0;
+  transition:color .18s ease,transform .18s ease,background-color .18s ease;
+}
+.modal-close svg{width:17px;height:17px}
+.modal-close:hover{
+  background:rgba(15,42,51,.06)!important;
+  color:var(--ink);
+  transform:rotate(90deg);
+}
+.modal-close:active{transform:rotate(90deg) scale(.88)}
+</style>
 </head>
 
 <body>
@@ -1591,7 +1654,7 @@ function quickCat(c){var el=document.querySelector('.category[data-cat="'+c+'"]'
 
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
     <div class="modal">
-        <button class="modal-close" onclick="closeModal()">✕</button>
+        <button class="modal-close" onclick="closeModal()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         <div id="modalBody"></div>
     </div>
 </div>
