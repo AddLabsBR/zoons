@@ -1977,11 +1977,40 @@ function requestLocation(){
             userLng = pos.coords.longitude;
             pill.classList.add('active');
             txt.textContent = 'Localização ativa · ordenando por distância';
+            try{ localStorage.setItem('zoons_loc_ativa', '1'); }catch(e){}
             applyFilters();
             if(leafletMap) leafletMap.setView([userLat, userLng], 13);
         },
         () => {
             txt.textContent = 'Localização negada · mostrando todos';
+            try{ localStorage.removeItem('zoons_loc_ativa'); }catch(e){}
+        }
+    );
+}
+
+/* Se o visitante já ativou a localização numa visita anterior, tenta
+   restaurar sozinho ao carregar a página de novo — sem isso, a distância
+   só reaparecia depois de clicar em "Ativar minha localização" outra vez.
+   Falha em silêncio (sem mostrar "negada") se a permissão tiver sido
+   revogada nesse meio tempo, e para de tentar automaticamente a partir daí. */
+function tentarRestaurarLocalizacao(){
+    if(!navigator.geolocation) return;
+    let jaAtivou = false;
+    try{ jaAtivou = localStorage.getItem('zoons_loc_ativa') === '1'; }catch(e){}
+    if(!jaAtivou) return;
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            userLat = pos.coords.latitude;
+            userLng = pos.coords.longitude;
+            const pill = document.getElementById('locationPill');
+            const txt = document.getElementById('locationText');
+            if(pill) pill.classList.add('active');
+            if(txt) txt.textContent = 'Localização ativa · ordenando por distância';
+            applyFilters();
+            if(leafletMap) leafletMap.setView([userLat, userLng], 13);
+        },
+        () => {
+            try{ localStorage.removeItem('zoons_loc_ativa'); }catch(e){}
         }
     );
 }
@@ -2011,6 +2040,7 @@ let fase = 'destaque';       // paginação: primeiro 'destaque', depois 'normal
 
 applyFilters();
 atualizarContadoresCategorias();
+tentarRestaurarLocalizacao();
 
 function businessCardHTML(empresa){
     const badge = empresa.destaque
