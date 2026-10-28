@@ -653,7 +653,7 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 
 /* Anúncios — fotos, preço e detalhes por categoria (ênfase em Imóveis) */
 .anuncios-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:4px}
-.anuncio-card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;transition:.15s}
+.anuncio-card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;transition:.15s;cursor:pointer}
 .anuncio-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .anuncio-foto{width:100%;aspect-ratio:4/3;object-fit:cover;background:#F1F4F3;display:block}
 .anuncio-foto-vazia{width:100%;aspect-ratio:4/3;background:#F1F4F3;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px}
@@ -707,6 +707,15 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 .anuncio-badge.aluguel{background:#FFF0D2;color:#C27A00}
 .anuncio-badge.destaque{background:#FFF4D6;color:#A6760A;box-shadow:0 0 0 1px #F2D98A inset}
 .anuncio-meta{font-size:11px;color:var(--muted);margin:2px 0 0}
+.anuncio-detalhe-foto{aspect-ratio:4/3;max-height:320px;border-radius:14px}
+.anuncio-voltar{background:none;border:0;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:0;margin-bottom:12px;display:inline-flex;align-items:center;gap:4px;font-family:inherit}
+.anuncio-voltar:hover{color:var(--ink)}
+.anuncio-detalhe-acoes{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.anuncio-detalhe-acoes a{flex:1;min-width:140px;text-align:center;border-radius:999px;padding:13px 16px;font-weight:700;font-size:14px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:.2s}
+.anuncio-btn-whatsapp{background:var(--green);color:#fff}
+.anuncio-btn-whatsapp:hover{background:var(--green-d)}
+.anuncio-btn-email{background:#fff;color:var(--ink);border:1.5px solid var(--line-strong)}
+.anuncio-btn-email:hover{border-color:var(--ink)}
 
 .anuncio-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .anuncio-form-grid label{display:block;margin-bottom:3px}
@@ -2041,6 +2050,7 @@ let fase = 'destaque';       // paginação: primeiro 'destaque', depois 'normal
 applyFilters();
 atualizarContadoresCategorias();
 tentarRestaurarLocalizacao();
+verificarLinkAnuncio();
 
 function businessCardHTML(empresa){
     const badge = empresa.destaque
@@ -2500,7 +2510,15 @@ let avaliacaoExistente = false;
 
 function viewProfile(empresaId){
     const empresa = allEmpresas.find(e => e.id === empresaId);
-    if(!empresa) return;
+    if(empresa){ renderPerfilEmpresa(empresa); return; }
+    // Não estava na lista já carregada (ex.: alguém abriu um link direto de anúncio
+    // antes da lista principal terminar de carregar) — busca direto no Firestore.
+    db.collection('empresas').doc(empresaId).get()
+      .then(doc => { if(doc.exists) renderPerfilEmpresa({ id: doc.id, ...doc.data() }); })
+      .catch(err => console.error('Erro ao abrir empresa:', err));
+}
+
+function renderPerfilEmpresa(empresa){
     avaliandoEstrelas = 0;
     avaliacaoExistente = false;
 
@@ -2538,7 +2556,7 @@ function viewProfile(empresaId){
 
     carregarAvaliacoes(empresa.id);
     preencherMinhaAvaliacao(empresa);
-    carregarAnunciosPublicos(empresa.id);
+    carregarAnunciosPublicos(empresa);
 }
 
 // Dono não avalia a própria empresa; quem já avaliou edita a sua (1 por pessoa)
@@ -3355,8 +3373,8 @@ async function excluirAnuncio(empresaId, anuncioId){
     }
 }
 
-function carregarAnunciosPublicos(empresaId){
-    db.collection('empresas').doc(empresaId).collection('anuncios')
+function carregarAnunciosPublicos(empresa){
+    db.collection('empresas').doc(empresa.id).collection('anuncios')
       .orderBy('criado_em', 'desc')
       .limit(20)
       .get()
@@ -3370,7 +3388,7 @@ function carregarAnunciosPublicos(empresaId){
           el.innerHTML = `
               <p class="eyebrow" style="margin-bottom:10px;border-top:1px solid var(--line);padding-top:16px;">ANÚNCIOS</p>
               <div class="anuncios-grid">
-                  ${docs.map(doc => renderAnuncioCard(doc.data())).join('')}
+                  ${docs.map(doc => renderAnuncioCard(doc.data(), doc.id, empresa)).join('')}
               </div>
           `;
           // Liga o mini-carrossel de cada card que tem mais de 1 foto
@@ -3382,14 +3400,26 @@ function carregarAnunciosPublicos(empresaId){
       .catch(err => console.error('Erro ao carregar anúncios:', err));
 }
 
-function renderAnuncioCard(a){
+// Cache dos anúncios já renderizados nesta sessão (chave = id do anúncio), pra abrir
+// o modal de detalhe (com botões de contato) sem precisar buscar tudo de novo no Firestore.
+let _anunciosData = {};
+
+function renderAnuncioCard(a, anuncioId, empresa){
+    _anunciosData[anuncioId] = {
+        ...a,
+        id: anuncioId,
+        empresaId: empresa.id,
+        empresaNome: empresa.nome,
+        empresaWhatsapp: empresa.whatsapp,
+        empresaEmail: empresa.email
+    };
     const fotos = Array.isArray(a.fotos) ? a.fotos.filter(Boolean) : [];
     let foto;
     if(fotos.length){
         const galeriaIdx = _galeriaFotos.length;
         _galeriaFotos.push(fotos);
         foto = `
-            <div class="anuncio-foto-carousel" data-total="${fotos.length}" onclick="abrirGaleriaAnuncio(${galeriaIdx})">
+            <div class="anuncio-foto-carousel" data-total="${fotos.length}" onclick="event.stopPropagation(); abrirGaleriaAnuncio(${galeriaIdx})">
                 ${fotos.map((url, i) => `<img class="slide${i === 0 ? ' active' : ''}" src="${esc(url)}" loading="lazy" alt="">`).join('')}
                 ${fotos.length > 1 ? `<div class="dots">${fotos.map((_, i) => `<span${i === 0 ? ' class="active"' : ''}></span>`).join('')}</div>` : ''}
                 <span class="zoom-hint">⤢</span>
@@ -3412,7 +3442,7 @@ function renderAnuncioCard(a){
         ? `<a href="https://www.google.com/maps?q=${a.lat},${a.lng}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:11px;color:var(--green-d);font-weight:700;text-decoration:none;display:inline-block;margin-top:2px;">📍 Ver no mapa</a>`
         : '';
     return `
-        <div class="anuncio-card">
+        <div class="anuncio-card" onclick="abrirDetalheAnuncio('${anuncioId}')">
             ${foto}
             <div class="anuncio-body">
                 ${badgeDestaque}${badge}
@@ -3424,6 +3454,114 @@ function renderAnuncioCard(a){
             </div>
         </div>
     `;
+}
+
+/* ---------- Modal de detalhe do anúncio: todos os dados + contato direto
+   (WhatsApp/e-mail) com link do anúncio já pronto na mensagem ---------- */
+
+function linkAnuncio(empresaId, anuncioId){
+    return location.origin + location.pathname + '#/anuncio/' + empresaId + '/' + anuncioId;
+}
+
+function abrirDetalheAnuncio(anuncioId){
+    const a = _anunciosData[anuncioId];
+    if(!a) return;
+    renderDetalheAnuncioModal(a);
+}
+
+// Abre o anúncio quando alguém chega direto por um link compartilhado (ex.: o cliente
+// manda o link pro vendedor no WhatsApp) — busca os dados direto no Firestore, sem
+// depender da lista principal já ter carregado.
+async function abrirDetalheAnuncioPorLink(empresaId, anuncioId){
+    try{
+        const [anDoc, empDoc] = await Promise.all([
+            db.collection('empresas').doc(empresaId).collection('anuncios').doc(anuncioId).get(),
+            db.collection('empresas').doc(empresaId).get()
+        ]);
+        if(!anDoc.exists || !empDoc.exists) return;
+        const emp = empDoc.data();
+        const data = {
+            ...anDoc.data(),
+            id: anDoc.id,
+            empresaId,
+            empresaNome: emp.nome,
+            empresaWhatsapp: emp.whatsapp,
+            empresaEmail: emp.email
+        };
+        _anunciosData[anDoc.id] = data;
+        renderDetalheAnuncioModal(data);
+    } catch(err){
+        console.error('Erro ao abrir anúncio pelo link:', err);
+    }
+}
+
+function verificarLinkAnuncio(){
+    const m = location.hash.match(/^#\/anuncio\/([^/]+)\/([^/]+)/);
+    if(!m) return;
+    abrirDetalheAnuncioPorLink(m[1], m[2]);
+}
+
+function renderDetalheAnuncioModal(a){
+    const fotos = Array.isArray(a.fotos) ? a.fotos.filter(Boolean) : [];
+    _galeriaFotos = [];
+    let fotoHtml;
+    if(fotos.length){
+        _galeriaFotos.push(fotos);
+        fotoHtml = `
+            <div class="anuncio-foto-carousel anuncio-detalhe-foto" data-total="${fotos.length}" onclick="abrirGaleriaAnuncio(0)">
+                ${fotos.map((url, i) => `<img class="slide${i === 0 ? ' active' : ''}" src="${esc(url)}" loading="${i === 0 ? 'eager' : 'lazy'}" alt="">`).join('')}
+                ${fotos.length > 1 ? `<div class="dots">${fotos.map((_, i) => `<span${i === 0 ? ' class="active"' : ''}></span>`).join('')}</div>` : ''}
+                <span class="zoom-hint">⤢</span>
+            </div>
+        `;
+    } else {
+        fotoHtml = `<div class="anuncio-foto-vazia" style="aspect-ratio:4/3;">Sem foto</div>`;
+    }
+    const precoTxt = typeof a.preco === 'number' ? 'R$ ' + a.preco.toLocaleString('pt-BR') : '';
+    const badgeDestaque = a.destaque === true ? `<span class="anuncio-badge destaque">⭐ Destaque</span>` : '';
+    const badge = a.categoria === 'Imóveis' && a.operacao
+        ? `<span class="anuncio-badge ${a.operacao === 'Aluguel' ? 'aluguel' : 'venda'}">${esc(a.operacao)}</span>`
+        : '';
+    const metaImovel = a.categoria === 'Imóveis'
+        ? [a.area_m2 ? a.area_m2 + ' m²' : '', a.quartos ? a.quartos + ' quartos' : '', a.banheiros ? a.banheiros + ' banheiros' : '', a.vaga_garagem ? a.vaga_garagem + ' vaga' + (a.vaga_garagem > 1 ? 's' : '') : ''].filter(Boolean).join(' · ')
+        : '';
+    const enderecoTxt = (a.categoria === 'Imóveis' && a.endereco) ? a.endereco : '';
+    const temPin = a.categoria === 'Imóveis' && typeof a.lat === 'number' && typeof a.lng === 'number';
+    const linkMapa = temPin
+        ? `<a href="https://www.google.com/maps?q=${a.lat},${a.lng}" target="_blank" rel="noopener" style="font-size:12.5px;color:var(--green-d);font-weight:700;text-decoration:none;display:inline-block;margin-top:6px;">📍 Ver localização no mapa</a>`
+        : '';
+
+    const link = linkAnuncio(a.empresaId, a.id);
+    const msg = `Olá! Tenho interesse neste anúncio: ${link}`;
+    const numero = String(a.empresaWhatsapp || '').replace(/\D/g, '');
+    const btnWhats = numero
+        ? `<a class="anuncio-btn-whatsapp" href="https://wa.me/${numero}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">💬 WhatsApp</a>`
+        : '';
+    const btnEmail = a.empresaEmail
+        ? `<a class="anuncio-btn-email" href="mailto:${esc(a.empresaEmail)}?subject=${encodeURIComponent('Interesse no anúncio: ' + (a.titulo || ''))}&body=${encodeURIComponent(msg)}">✉️ E-mail</a>`
+        : '';
+
+    showModal(`
+        <button type="button" class="anuncio-voltar" onclick="viewProfile('${a.empresaId}')">‹ Voltar para ${esc(a.empresaNome || 'a empresa')}</button>
+        ${fotoHtml}
+        <div style="margin-top:14px;">
+            ${badgeDestaque}${badge}
+            <h3 style="margin:4px 0 2px;">${esc(a.titulo)}</h3>
+            ${precoTxt ? `<p class="anuncio-preco" style="font-size:18px;">${esc(precoTxt)}</p>` : ''}
+            ${metaImovel ? `<p class="anuncio-meta" style="font-size:13px;">${esc(metaImovel)}</p>` : ''}
+            ${enderecoTxt ? `<p class="anuncio-meta" style="font-size:13px;">📍 ${esc(enderecoTxt)}</p>` : ''}
+            ${linkMapa}
+            ${a.descricao ? `<p style="font-size:14px;color:#4A4E55;line-height:1.55;margin-top:14px;white-space:pre-wrap;">${esc(a.descricao)}</p>` : ''}
+        </div>
+        <div class="anuncio-detalhe-acoes">
+            ${btnWhats}${btnEmail}
+        </div>
+        ${(!btnWhats && !btnEmail) ? `<p style="font-size:12px;color:var(--muted);margin-top:10px;">Esta empresa não informou um contato direto.</p>` : ''}
+    `);
+    if(fotos.length){
+        const elCarousel = document.querySelector('#modalBody .anuncio-foto-carousel');
+        if(elCarousel) iniciarCarrosselCard(elCarousel, fotos.length);
+    }
 }
 
 /* ---------- Galeria de fotos — carrossel nos cards + visualização em tela cheia ----------
