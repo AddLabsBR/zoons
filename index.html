@@ -170,6 +170,7 @@ footer::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:no
 .modal-overlay{position:fixed;inset:0;background:rgba(15,42,51,.62);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:1200;padding:18px}
 .modal-overlay.open,.modal-overlay.active{display:flex}
 .modal{background:#fff;border-radius:26px;padding:30px;width:100%;max-width:470px;max-height:90vh;overflow:auto;position:relative;box-shadow:0 40px 90px -30px rgba(15,42,51,.5)}
+.modal p,.modal h3,.modal .anuncio-meta,.modal .desc,.desc,.anuncio-meta,.anuncio-titulo{overflow-wrap:anywhere;word-break:break-word}
 .modal h2{margin:0 0 18px;font-size:24px}
 .modal-close{position:absolute;top:16px;right:16px;background:#F2F6F4;border:0;width:36px;height:36px;border-radius:50%;font-size:15px;color:var(--ink)}
 .field{margin-bottom:14px}
@@ -710,11 +711,14 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 .anuncio-detalhe-foto{aspect-ratio:4/3;max-height:320px;border-radius:14px}
 .anuncio-voltar{background:none;border:0;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:0;margin-bottom:12px;display:inline-flex;align-items:center;gap:4px;font-family:inherit}
 .anuncio-voltar:hover{color:var(--ink)}
-.anuncio-detalhe-acoes{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
-.anuncio-detalhe-acoes a{flex:1;min-width:120px;text-align:center;border-radius:10px;padding:10px 14px;font-weight:600;font-size:13.5px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid var(--line-strong);color:var(--ink);transition:.15s}
-.anuncio-btn-whatsapp{border-color:var(--green);color:var(--green-d)}
-.anuncio-btn-whatsapp:hover{background:var(--green);color:#fff}
-.anuncio-btn-email:hover{border-color:var(--ink)}
+.anuncio-detalhe-acoes{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.anuncio-detalhe-acoes a{flex:1;min-width:130px;text-align:center;border-radius:11px;padding:11px 16px;font-weight:600;font-size:13.5px;letter-spacing:.01em;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1.5px solid transparent;transition:.18s ease}
+.anuncio-detalhe-acoes svg{width:16px;height:16px;flex-shrink:0}
+.anuncio-btn-whatsapp{background:var(--green);color:#fff;box-shadow:0 8px 18px -10px rgba(18,160,92,.6)}
+.anuncio-btn-whatsapp:hover{background:var(--green-d);transform:translateY(-1px);box-shadow:0 10px 22px -10px rgba(18,160,92,.7)}
+.anuncio-btn-whatsapp:active{transform:translateY(0)}
+.anuncio-btn-email{background:#fff;color:var(--ink);border-color:var(--line-strong)}
+.anuncio-btn-email:hover{border-color:var(--ink);background:var(--bg)}
 
 .anuncio-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .anuncio-form-grid label{display:block;margin-bottom:3px}
@@ -3636,11 +3640,13 @@ function renderDetalheAnuncioModal(a){
     const link = linkAnuncio(a.empresaId, a.id);
     const msg = `Olá! Tenho interesse neste anúncio: ${link}`;
     const numero = numeroWhatsappCompleto(a.empresaWhatsapp);
+    const icoWhats = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.9a8.4 8.4 0 0 1-12.2 7.5L4 20.5l1.1-4.1a8.4 8.4 0 1 1 15.4-4.5Z"/><path d="M8.7 8.6c.2-.5.5-.5.8-.5h.5c.2 0 .4 0 .6.4.2.4.6 1.4.7 1.5.1.1.1.3 0 .5-.1.2-.2.3-.4.5-.2.2-.3.3-.1.6.2.3.8 1.3 1.8 2.1 1.2 1 2 1.3 2.3 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1 .2-.2.3-.2.6-.1.2.1 1.5.7 1.8.9.3.1.4.2.5.3.1.2.1.9-.2 1.6-.3.7-1.6 1.4-2.2 1.5-.6.1-1.1.2-3.6-.8-3-1.2-4.9-4.2-5-4.4-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4Z"/></svg>`;
+    const icoEmail = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 7.4 5.6a1 1 0 0 0 1.2 0L20 7"/></svg>`;
     const btnWhats = numero
-        ? `<a class="anuncio-btn-whatsapp" href="https://wa.me/${numero}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">WhatsApp</a>`
+        ? `<a class="anuncio-btn-whatsapp" href="https://wa.me/${numero}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${icoWhats}WhatsApp</a>`
         : '';
     const btnEmail = a.empresaEmail
-        ? `<a class="anuncio-btn-email" href="mailto:${esc(a.empresaEmail)}?subject=${encodeURIComponent('Interesse no anúncio: ' + (a.titulo || ''))}&body=${encodeURIComponent(msg)}">E-mail</a>`
+        ? `<a class="anuncio-btn-email" href="mailto:${esc(a.empresaEmail)}?subject=${encodeURIComponent('Interesse no anúncio: ' + (a.titulo || ''))}&body=${encodeURIComponent(msg)}">${icoEmail}E-mail</a>`
         : '';
 
     showModal(`
@@ -3653,7 +3659,7 @@ function renderDetalheAnuncioModal(a){
             ${metaImovel ? `<p class="anuncio-meta" style="font-size:13px;">${esc(metaImovel)}</p>` : ''}
             ${enderecoTxt ? `<p class="anuncio-meta" style="font-size:13px;">📍 ${esc(enderecoTxt)}</p>` : ''}
             ${linkMapa}
-            ${a.descricao ? `<p style="font-size:14px;color:#4A4E55;line-height:1.55;margin-top:14px;white-space:pre-wrap;">${esc(a.descricao)}</p>` : ''}
+            ${a.descricao ? `<p style="font-size:14px;color:#4A4E55;line-height:1.55;margin-top:14px;white-space:pre-wrap;overflow-wrap:anywhere;">${esc(a.descricao)}</p>` : ''}
         </div>
         <div class="anuncio-detalhe-acoes">
             ${btnWhats}${btnEmail}
