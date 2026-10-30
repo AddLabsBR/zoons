@@ -708,6 +708,19 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 .anuncio-badge.aluguel{background:#FFF0D2;color:#C27A00}
 .anuncio-badge.destaque{background:#FFF4D6;color:#A6760A;box-shadow:0 0 0 1px #F2D98A inset}
 .anuncio-meta{font-size:11px;color:var(--muted);margin:2px 0 0}
+.anuncio-selo-marca{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:6px;color:#fff;font-size:9px;font-weight:800;letter-spacing:.01em;margin-right:5px;vertical-align:middle;flex:none}
+.anuncio-valores{margin-top:4px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#FAFCFB}
+.anuncio-valores div{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;font-size:10.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+.anuncio-valores div:last-child{border-bottom:0}
+.anuncio-valores div b{font-size:11px;color:var(--ink);font-weight:700}
+.anuncio-valores div.total{background:#F1F4F3}
+.anuncio-valores div.total span,.anuncio-valores div.total b{color:var(--green-d);font-weight:800}
+.anuncio-ficha{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-top:14px}
+.anuncio-ficha div{display:flex;flex-direction:column;min-width:0}
+.anuncio-ficha span{font-size:11px;color:var(--muted)}
+.anuncio-ficha b{font-size:13.5px;color:var(--ink);overflow-wrap:anywhere}
+.anuncio-valores-grande div{padding:8px 12px;font-size:13px}
+.anuncio-valores-grande div b{font-size:14px}
 .anuncio-detalhe-foto{aspect-ratio:4/3;max-height:320px;border-radius:14px}
 .anuncio-voltar{background:none;border:0;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:0;margin-bottom:12px;display:inline-flex;align-items:center;gap:4px;font-family:inherit}
 .anuncio-voltar:hover{color:var(--ink)}
@@ -1886,6 +1899,56 @@ const NETLIFY_FUNCTIONS_BASE = 'https://achou-plus-backend.netlify.app/.netlify/
    4) Cole os dois valores abaixo (sem apagar as aspas) */
 const CLOUDINARY_CLOUD_NAME = 'zzhznqvi';
 const CLOUDINARY_UPLOAD_PRESET = 'zoons_anuncios';
+
+/* Marcas e modelos de veículos (categoria Automóveis) — ao escolher a marca, o campo
+   Modelo é preenchido automaticamente com os modelos daquela marca, e um "selo" com a
+   marca aparece sozinho no card/anúncio (sem precisar de logo pronta de terceiros). */
+const MARCAS_MODELOS = {
+    'Chevrolet': ['Onix','Onix Plus','Tracker','Spin','S10','Montana','Cruze','Equinox','Outro'],
+    'Fiat': ['Mobi','Argo','Cronos','Pulse','Fastback','Strada','Toro','Doblô','Outro'],
+    'Volkswagen': ['Gol','Polo','Virtus','T-Cross','Nivus','Saveiro','Amarok','Taos','Outro'],
+    'Ford': ['Ka','EcoSport','Ranger','Territory','Bronco Sport','Maverick','Outro'],
+    'Toyota': ['Corolla','Corolla Cross','Yaris','Hilux','SW4','RAV4','Etios','Outro'],
+    'Honda': ['City','Civic','HR-V','WR-V','CR-V','Fit','Outro'],
+    'Hyundai': ['HB20','HB20S','Creta','Tucson','Santa Fe','ix35','Outro'],
+    'Renault': ['Kwid','Sandero','Logan','Duster','Captur','Oroch','Outro'],
+    'Nissan': ['Versa','Kicks','Sentra','Frontier','March','Outro'],
+    'Jeep': ['Renegade','Compass','Commander','Wrangler','Outro'],
+    'Peugeot': ['208','2008','3008','408','Partner','Outro'],
+    'Citroën': ['C3','C4 Cactus','C4 Lounge','Aircross','Outro'],
+    'Mitsubishi': ['L200 Triton','Pajero Sport','ASX','Eclipse Cross','Outro'],
+    'Kia': ['Sportage','Cerato','Sorento','Stonic','Outro'],
+    'BMW': ['Série 1','Série 3','X1','X3','X5','Outro'],
+    'Mercedes-Benz': ['Classe A','Classe C','GLA','GLC','Outro'],
+    'Audi': ['A3','A4','Q3','Q5','Outro'],
+    'Subaru': ['Impreza','Forester','Crosstrek','Outback','XV','Outro'],
+    'Volvo': ['XC40','XC60','XC90','S60','Outro'],
+    'RAM': ['1500','2500','Rampage','Outro'],
+    'Chery': ['Tiggo 5x','Tiggo 7','Tiggo 8','Arrizo 6','Outro'],
+    'BYD': ['Dolphin','Song Plan','Yuan Plus','Han','Outro'],
+    'Outra marca': ['Outro']
+};
+// Cor fixa por marca (determinística), só pra dar identidade visual ao selo — não é logo oficial.
+function corMarca(marca){
+    const cores = ['#0E8F86','#C27A00','#2E6BD6','#9B3FD1','#D14F6B','#4A8F2E','#B5862A','#2F7FA6'];
+    let h = 0;
+    for(let i = 0; i < (marca || '').length; i++) h = (h * 31 + marca.charCodeAt(i)) % cores.length;
+    return cores[Math.abs(h) % cores.length];
+}
+function seloMarca(marca){
+    if(!marca) return '';
+    const sigla = marca.replace('Outra marca','?').slice(0, 2).toUpperCase();
+    return `<span class="anuncio-selo-marca" style="background:${corMarca(marca)}">${esc(sigla)}</span>`;
+}
+function populateModelosVeiculo(marcaSelecionada, modeloAtual){
+    const selMarca = document.getElementById('anMarca');
+    const selModelo = document.getElementById('anModelo');
+    if(!selMarca || !selModelo) return;
+    const marca = marcaSelecionada || selMarca.value;
+    const modelos = MARCAS_MODELOS[marca] || ['Outro'];
+    selModelo.innerHTML = modelos.map(m => `<option ${m === modeloAtual ? 'selected' : ''}>${esc(m)}</option>`).join('');
+}
+
 
 /* Estado local dos dados carregados do Firestore */
 let allEmpresas = [];      // todas as empresas com status "aprovado"
@@ -3199,7 +3262,12 @@ async function renderListaMeusAnuncios(empresaId, empresa){
 }
 
 async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatus){
-    let a = { titulo:'', preco:'', descricao:'', fotos:[], operacao:'Venda', tipo_imovel:'Casa', area_m2:'', quartos:'', banheiros:'', vaga_garagem:'', destaque:false };
+    let a = {
+        titulo:'', preco:'', descricao:'', fotos:[], operacao:'Venda', tipo_imovel:'Casa',
+        area_m2:'', quartos:'', banheiros:'', vaga_garagem:'', condominio:'', iptu:'', destaque:false,
+        marca:'', modelo:'', ano_fab:'', ano_modelo:'', km:'', combustivel:'Flex', cambio:'Manual',
+        carroceria:'Hatch', cor:'', placa_final:'', cidade_veiculo:''
+    };
     if(anuncioId){
         const doc = await db.collection('empresas').doc(empresaId).collection('anuncios').doc(anuncioId).get();
         if(doc.exists) a = Object.assign(a, doc.data());
@@ -3207,6 +3275,7 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
     anuncioFotosAtuais = Array.isArray(a.fotos) ? a.fotos.slice() : [];
 
     const isImovel = categoria === 'Imóveis';
+    const isAutomovel = categoria === 'Automóveis';
     const podeDestacar = assinaturaStatus === 'ativa';
     const campoEstilo = 'width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid var(--line-strong);font-size:13.5px;';
     const camposImovel = !isImovel ? '' : `
@@ -3241,6 +3310,21 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
                 <input id="anVagaGaragem" type="number" min="0" value="${a.vaga_garagem ?? ''}" style="${campoEstilo}">
             </div>
         </div>
+        <p class="eyebrow" style="margin:14px 0 6px;">VALORES</p>
+        <div class="anuncio-form-grid">
+            <div>
+                <label style="font-size:12px;color:var(--muted);">${a.operacao==='Aluguel' ? 'Aluguel (R$/mês)' : 'Valor de venda (R$)'}</label>
+                <p style="font-size:11px;color:var(--muted);margin:0 0 4px;">Preenchido no campo "Preço" acima</p>
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Condomínio (R$)</label>
+                <input id="anCondominio" type="number" min="0" step="0.01" placeholder="0 se isento" value="${a.condominio ?? ''}" style="${campoEstilo}">
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">IPTU (R$)</label>
+                <input id="anIptu" type="number" min="0" step="0.01" placeholder="0 se isento" value="${a.iptu ?? ''}" style="${campoEstilo}">
+            </div>
+        </div>
         <div style="margin-top:10px;">
             <label style="font-size:12px;color:var(--muted);">Endereço do imóvel</label>
             <input id="anEndereco" type="text" maxlength="200" placeholder="Rua, número, bairro" value="${esc(a.endereco || '')}" style="${campoEstilo}">
@@ -3248,6 +3332,62 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
         <div style="margin-top:10px;">
             <p id="anMapaStatus" style="font-size:11.5px;color:var(--muted);margin:0 0 6px;">Toque no mapa para marcar o local exato do imóvel</p>
             <div id="anMapaImovel" style="height:190px;border-radius:10px;border:1.5px solid var(--line-strong);overflow:hidden;"></div>
+        </div>
+    `;
+    const camposAutomoveis = !isAutomovel ? '' : `
+        <div class="anuncio-form-grid" style="margin-top:10px;">
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Marca</label>
+                <select id="anMarca" style="${campoEstilo}" onchange="populateModelosVeiculo(this.value, null)">
+                    ${Object.keys(MARCAS_MODELOS).map(m => `<option ${a.marca===m?'selected':''}>${esc(m)}</option>`).join('')}
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Modelo</label>
+                <select id="anModelo" style="${campoEstilo}"></select>
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Ano de fabricação</label>
+                <input id="anAnoFab" type="number" min="1950" max="2100" placeholder="Ex: 2020" value="${a.ano_fab ?? ''}" style="${campoEstilo}">
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Ano do modelo</label>
+                <input id="anAnoModelo" type="number" min="1950" max="2100" placeholder="Ex: 2021" value="${a.ano_modelo ?? ''}" style="${campoEstilo}">
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Quilometragem (km)</label>
+                <input id="anKm" type="number" min="0" value="${a.km ?? ''}" style="${campoEstilo}">
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Combustível</label>
+                <select id="anCombustivel" style="${campoEstilo}">
+                    ${['Gasolina','Etanol','Flex','Diesel','Híbrido','Elétrico'].map(t => `<option ${a.combustivel===t?'selected':''}>${t}</option>`).join('')}
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Câmbio</label>
+                <select id="anCambio" style="${campoEstilo}">
+                    ${['Manual','Automático','Automatizado','CVT'].map(t => `<option ${a.cambio===t?'selected':''}>${t}</option>`).join('')}
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Carroceria</label>
+                <select id="anCarroceria" style="${campoEstilo}">
+                    ${['Hatch','Sedã','SUV/Crossover','Picape','Perua/SW','Conversível','Van/Utilitário','Outro'].map(t => `<option ${a.carroceria===t?'selected':''}>${t}</option>`).join('')}
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Cor</label>
+                <input id="anCor" type="text" maxlength="30" placeholder="Ex: Preta" value="${esc(a.cor || '')}" style="${campoEstilo}">
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Final da placa</label>
+                <input id="anPlacaFinal" type="number" min="0" max="9" placeholder="Ex: 8" value="${a.placa_final ?? ''}" style="${campoEstilo}">
+            </div>
+        </div>
+        <div style="margin-top:10px;">
+            <label style="font-size:12px;color:var(--muted);">Cidade</label>
+            <input id="anCidadeVeiculo" type="text" maxlength="100" placeholder="Ex: Curitiba/PR" value="${esc(a.cidade_veiculo || '')}" style="${campoEstilo}">
         </div>
     `;
     const campoDestaque = !podeDestacar ? '' : `
@@ -3260,10 +3400,11 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
     showModal(`
         <h3>${anuncioId ? 'Editar anúncio' : 'Novo anúncio'}</h3>
         <form onsubmit="return salvarAnuncio(event, '${empresaId}', '${categoria}', ${anuncioId ? `'${anuncioId}'` : 'null'})">
-            <input id="anTitulo" type="text" maxlength="120" placeholder="${isImovel ? 'Ex: Apartamento 2 quartos no Centro' : 'Título do anúncio'}" required value="${esc(a.titulo)}" style="${campoEstilo}margin-bottom:10px;">
-            <input id="anPreco" type="number" min="0" step="0.01" placeholder="Preço (R$)" value="${a.preco ?? ''}" style="${campoEstilo}margin-bottom:10px;">
+            <input id="anTitulo" type="text" maxlength="120" placeholder="${isImovel ? 'Ex: Apartamento 2 quartos no Centro' : (isAutomovel ? 'Ex: Subaru Forester 2.5xtt 2011' : 'Título do anúncio')}" required value="${esc(a.titulo)}" style="${campoEstilo}margin-bottom:10px;">
+            <input id="anPreco" type="number" min="0" step="0.01" placeholder="${isImovel ? (a.operacao==='Aluguel' ? 'Aluguel (R$/mês)' : 'Valor do imóvel (R$)') : 'Preço (R$)'}" value="${a.preco ?? ''}" style="${campoEstilo}margin-bottom:10px;">
             <textarea id="anDescricao" maxlength="800" placeholder="Detalhes" style="${campoEstilo}min-height:70px;margin-bottom:4px;">${esc(a.descricao)}</textarea>
             ${camposImovel}
+            ${camposAutomoveis}
             ${campoDestaque}
             <p style="font-size:12px;color:var(--muted);margin-top:12px;">Fotos (até 6)</p>
             <div class="anuncio-fotos-row" id="anuncioFotos"></div>
@@ -3277,6 +3418,9 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
         anLatAtual = (typeof a.lat === 'number') ? a.lat : null;
         anLngAtual = (typeof a.lng === 'number') ? a.lng : null;
         initMapaAnuncio(anLatAtual, anLngAtual);
+    }
+    if(isAutomovel){
+        populateModelosVeiculo(a.marca || Object.keys(MARCAS_MODELOS)[0], a.modelo);
     }
 }
 
@@ -3407,10 +3551,26 @@ async function salvarAnuncio(e, empresaId, categoria, anuncioId){
         dados.quartos = Number(document.getElementById('anQuartos').value) || null;
         dados.banheiros = Number(document.getElementById('anBanheiros').value) || null;
         dados.vaga_garagem = Number(document.getElementById('anVagaGaragem').value) || null;
+        dados.condominio = Number(document.getElementById('anCondominio').value) || 0;
+        dados.iptu = Number(document.getElementById('anIptu').value) || 0;
         const enderecoEl = document.getElementById('anEndereco');
         dados.endereco = enderecoEl ? enderecoEl.value.trim() : '';
         dados.lat = anLatAtual;
         dados.lng = anLngAtual;
+    }
+    if(categoria === 'Automóveis'){
+        dados.marca = document.getElementById('anMarca').value;
+        dados.modelo = document.getElementById('anModelo').value;
+        dados.ano_fab = Number(document.getElementById('anAnoFab').value) || null;
+        dados.ano_modelo = Number(document.getElementById('anAnoModelo').value) || null;
+        dados.km = Number(document.getElementById('anKm').value) || null;
+        dados.combustivel = document.getElementById('anCombustivel').value;
+        dados.cambio = document.getElementById('anCambio').value;
+        dados.carroceria = document.getElementById('anCarroceria').value;
+        dados.cor = document.getElementById('anCor').value.trim();
+        const placaEl = document.getElementById('anPlacaFinal');
+        dados.placa_final = placaEl && placaEl.value !== '' ? Number(placaEl.value) : null;
+        dados.cidade_veiculo = document.getElementById('anCidadeVeiculo').value.trim();
     }
 
     try {
@@ -3534,28 +3694,56 @@ function renderAnuncioCard(a, anuncioId, empresa){
     } else {
         foto = `<div class="anuncio-foto-vazia">Sem foto</div>`;
     }
-    const precoTxt = typeof a.preco === 'number' ? 'R$ ' + a.preco.toLocaleString('pt-BR') : '';
+    const isImovelCard = a.categoria === 'Imóveis';
+    const isAutomovelCard = a.categoria === 'Automóveis';
+    const fmtMoeda = v => 'R$ ' + Number(v).toLocaleString('pt-BR');
+    const precoTxt = typeof a.preco === 'number' ? fmtMoeda(a.preco) : '';
     const badgeDestaque = a.destaque === true ? `<span class="anuncio-badge destaque">⭐ Destaque</span>` : '';
-    const badge = a.categoria === 'Imóveis' && a.operacao
+    const badge = isImovelCard && a.operacao
         ? `<span class="anuncio-badge ${a.operacao === 'Aluguel' ? 'aluguel' : 'venda'}">${esc(a.operacao)}</span>`
         : '';
-    const metaImovel = a.categoria === 'Imóveis'
+    const metaImovel = isImovelCard
         ? [a.area_m2 ? a.area_m2 + ' m²' : '', a.quartos ? a.quartos + ' qts' : '', a.vaga_garagem ? a.vaga_garagem + ' vaga' + (a.vaga_garagem > 1 ? 's' : '') : ''].filter(Boolean).join(' · ')
         : '';
-    const enderecoTxt = (a.categoria === 'Imóveis' && a.endereco) ? a.endereco : '';
-    const temPin = a.categoria === 'Imóveis' && typeof a.lat === 'number' && typeof a.lng === 'number';
+    const enderecoTxt = (isImovelCard && a.endereco) ? a.endereco : '';
+    const temPin = isImovelCard && typeof a.lat === 'number' && typeof a.lng === 'number';
     const linkMapa = temPin
         ? `<a href="https://www.google.com/maps?q=${a.lat},${a.lng}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:11px;color:var(--green-d);font-weight:700;text-decoration:none;display:inline-block;margin-top:2px;">📍 Ver no mapa</a>`
+        : '';
+    // Bloco "Valores" (Imóveis) — igual ao padrão dos grandes portais: aluguel/valor + condomínio + IPTU + total.
+    const temValoresExtra = isImovelCard && (Number(a.condominio) > 0 || Number(a.iptu) > 0);
+    const valorTotal = isImovelCard ? (Number(a.preco) || 0) + (Number(a.condominio) || 0) + (Number(a.iptu) || 0) : 0;
+    const blocoValores = !temValoresExtra ? '' : `
+        <div class="anuncio-valores">
+            <div><span>${a.operacao === 'Aluguel' ? 'Aluguel' : 'Valor'}</span><b>${precoTxt || '—'}</b></div>
+            <div><span>Condomínio</span><b>${Number(a.condominio) > 0 ? fmtMoeda(a.condominio) : 'Isento'}</b></div>
+            <div><span>IPTU</span><b>${Number(a.iptu) > 0 ? fmtMoeda(a.iptu) : 'Isento'}</b></div>
+            <div class="total"><span>Valor total previsto</span><b>${fmtMoeda(valorTotal)}</b></div>
+        </div>
+    `;
+    // Selo da marca + ficha técnica (Automóveis)
+    const selo = isAutomovelCard ? seloMarca(a.marca) : '';
+    const anoTxt = isAutomovelCard && (a.ano_fab || a.ano_modelo)
+        ? `${a.ano_fab || '—'}/${a.ano_modelo || a.ano_fab || '—'}`
+        : '';
+    const metaAutomovel = isAutomovelCard
+        ? [anoTxt, typeof a.km === 'number' ? a.km.toLocaleString('pt-BR') + ' km' : '', a.combustivel || '', a.cambio || ''].filter(Boolean).join(' · ')
+        : '';
+    const metaAutomovel2 = isAutomovelCard
+        ? [a.carroceria || '', a.cor || '', a.cidade_veiculo || '', (a.placa_final !== null && a.placa_final !== undefined && a.placa_final !== '') ? 'Placa final ' + a.placa_final : ''].filter(Boolean).join(' · ')
         : '';
     return `
         <div class="anuncio-card" onclick="abrirDetalheAnuncio('${anuncioId}')">
             ${foto}
             <div class="anuncio-body">
                 ${badgeDestaque}${badge}
-                <p class="anuncio-titulo">${esc(a.titulo)}</p>
-                ${precoTxt ? `<p class="anuncio-preco">${esc(precoTxt)}</p>` : ''}
+                <p class="anuncio-titulo">${selo}${esc(a.titulo)}</p>
+                ${precoTxt && !temValoresExtra ? `<p class="anuncio-preco">${esc(precoTxt)}</p>` : ''}
+                ${blocoValores}
                 ${metaImovel ? `<p class="anuncio-meta">${esc(metaImovel)}</p>` : ''}
                 ${enderecoTxt ? `<p class="anuncio-meta">${esc(enderecoTxt)}</p>` : ''}
+                ${metaAutomovel ? `<p class="anuncio-meta">${esc(metaAutomovel)}</p>` : ''}
+                ${metaAutomovel2 ? `<p class="anuncio-meta">${esc(metaAutomovel2)}</p>` : ''}
                 ${linkMapa}
             </div>
         </div>
@@ -3623,6 +3811,32 @@ function renderDetalheAnuncioModal(a){
     } else {
         fotoHtml = `<div class="anuncio-foto-vazia" style="aspect-ratio:4/3;">Sem foto</div>`;
     }
+    const fmt = v => 'R$ ' + Number(v).toLocaleString('pt-BR');
+    const isAuto = a.categoria === 'Automóveis';
+    const linhasFicha = [];
+    if(isAuto){
+        if(a.marca) linhasFicha.push(['Marca', a.marca]);
+        if(a.modelo) linhasFicha.push(['Modelo', a.modelo]);
+        if(a.ano_fab || a.ano_modelo) linhasFicha.push(['Ano', `${a.ano_fab || '—'}/${a.ano_modelo || a.ano_fab || '—'}`]);
+        if(typeof a.km === 'number') linhasFicha.push(['Quilometragem', a.km.toLocaleString('pt-BR') + ' km']);
+        if(a.combustivel) linhasFicha.push(['Combustível', a.combustivel]);
+        if(a.cambio) linhasFicha.push(['Câmbio', a.cambio]);
+        if(a.carroceria) linhasFicha.push(['Carroceria', a.carroceria]);
+        if(a.cor) linhasFicha.push(['Cor', a.cor]);
+        if(a.placa_final !== null && a.placa_final !== undefined && a.placa_final !== '') linhasFicha.push(['Final da placa', a.placa_final]);
+        if(a.cidade_veiculo) linhasFicha.push(['Cidade', a.cidade_veiculo]);
+    }
+    const fichaHtml = linhasFicha.length ? `<div class="anuncio-ficha">${linhasFicha.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}</div>` : '';
+    const temExtra = a.categoria === 'Imóveis' && (Number(a.condominio) > 0 || Number(a.iptu) > 0);
+    const totalPrev = (Number(a.preco) || 0) + (Number(a.condominio) || 0) + (Number(a.iptu) || 0);
+    const valoresHtml = !temExtra ? '' : `
+        <p class="eyebrow" style="margin:16px 0 6px;">VALORES</p>
+        <div class="anuncio-valores anuncio-valores-grande">
+            <div><span>${a.operacao === 'Aluguel' ? 'Aluguel' : 'Valor'}</span><b>${typeof a.preco === 'number' ? fmt(a.preco) : '—'}</b></div>
+            <div><span>Condomínio</span><b>${Number(a.condominio) > 0 ? fmt(a.condominio) : 'Isento'}</b></div>
+            <div><span>IPTU</span><b>${Number(a.iptu) > 0 ? fmt(a.iptu) : 'Isento'}</b></div>
+            <div class="total"><span>Valor total previsto</span><b>${fmt(totalPrev)}</b></div>
+        </div>`;
     const precoTxt = typeof a.preco === 'number' ? 'R$ ' + a.preco.toLocaleString('pt-BR') : '';
     const badgeDestaque = a.destaque === true ? `<span class="anuncio-badge destaque">⭐ Destaque</span>` : '';
     const badge = a.categoria === 'Imóveis' && a.operacao
@@ -3654,8 +3868,10 @@ function renderDetalheAnuncioModal(a){
         ${fotoHtml}
         <div style="margin-top:14px;">
             ${badgeDestaque}${badge}
-            <h3 style="margin:4px 0 2px;">${esc(a.titulo)}</h3>
-            ${precoTxt ? `<p class="anuncio-preco" style="font-size:18px;">${esc(precoTxt)}</p>` : ''}
+            <h3 style="margin:4px 0 2px;">${isAuto ? seloMarca(a.marca) : ''}${esc(a.titulo)}</h3>
+            ${precoTxt && !temExtra ? `<p class="anuncio-preco" style="font-size:18px;">${esc(precoTxt)}</p>` : ''}
+            ${valoresHtml}
+            ${fichaHtml}
             ${metaImovel ? `<p class="anuncio-meta" style="font-size:13px;">${esc(metaImovel)}</p>` : ''}
             ${enderecoTxt ? `<p class="anuncio-meta" style="font-size:13px;">📍 ${esc(enderecoTxt)}</p>` : ''}
             ${linkMapa}
