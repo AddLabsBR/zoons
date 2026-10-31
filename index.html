@@ -655,6 +655,11 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 /* Anúncios — fotos, preço e detalhes por categoria (ênfase em Imóveis) */
 .anuncios-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:4px}
 .anuncios-grid-global{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.anuncio-badge.situacao{margin-left:4px}
+.anuncio-badge.situacao.analise{background:#E6EFFB;color:#2A5FB0}
+.anuncio-badge.situacao.encerrado{background:#EEE;color:#555}
+.anuncio-card.encerrado .anuncio-foto-carousel,.anuncio-card.encerrado .anuncio-foto-vazia{filter:grayscale(1);opacity:.65}
+.anuncio-card.encerrado .anuncio-titulo,.anuncio-card.encerrado .anuncio-preco{opacity:.6}
 .anuncios-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .anuncios-filtros select,.anuncios-filtros input{flex:1 1 105px;min-width:0;padding:8px 10px;border-radius:9px;border:1.5px solid var(--line-strong);font-size:12.5px;font-family:inherit;background:#fff;color:var(--ink)}
 .anuncio-card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;transition:.15s;cursor:pointer}
@@ -1905,6 +1910,27 @@ const NETLIFY_FUNCTIONS_BASE = 'https://achou-plus-backend.netlify.app/.netlify/
    4) Cole os dois valores abaixo (sem apagar as aspas) */
 const CLOUDINARY_CLOUD_NAME = 'zzhznqvi';
 const CLOUDINARY_UPLOAD_PRESET = 'zoons_anuncios';
+
+/* Situação do anúncio: Disponível / Em análise / Vendido / Alugado — a empresa marca no próprio anúncio */
+function opcoesSituacao(categoria, operacao){
+    const final = (categoria === 'Imóveis' && operacao === 'Aluguel') ? 'Alugado' : 'Vendido';
+    return ['Disponível', 'Em análise', final];
+}
+function atualizarOpcoesSituacao(){
+    const sel = document.getElementById('anSituacao');
+    if(!sel) return;
+    const opEl = document.getElementById('anOperacao');
+    const atual = sel.value;
+    const ops = opcoesSituacao(sel.dataset.cat, opEl ? opEl.value : '');
+    // se estava "Vendido" e virou Aluguel (ou vice-versa), troca pelo equivalente
+    const alvo = (atual === 'Vendido' || atual === 'Alugado') ? ops[2] : atual;
+    sel.innerHTML = ops.map(o => `<option ${o === alvo ? 'selected' : ''}>${o}</option>`).join('');
+}
+function anuncioEncerrado(a){ return a && (a.situacao === 'Vendido' || a.situacao === 'Alugado'); }
+function badgeSituacao(a){
+    if(!a || !a.situacao || a.situacao === 'Disponível') return '';
+    return `<span class="anuncio-badge situacao ${anuncioEncerrado(a) ? 'encerrado' : 'analise'}">${esc(a.situacao)}</span>`;
+}
 
 /* Marcas e modelos de veículos (categoria Automóveis) — ao escolher a marca, o campo
    Modelo é preenchido automaticamente com os modelos daquela marca, e um "selo" com a
@@ -3279,7 +3305,7 @@ async function renderListaMeusAnuncios(empresaId, empresa){
         return `
             <div class="meus-anuncios-item">
                 ${foto}
-                <div class="info"><strong>${a.destaque === true ? '⭐ ' : ''}${esc(a.titulo)}</strong><span style="font-size:11.5px;color:var(--muted);">${esc(precoTxt)}${a.ativo === false ? ' · oculto' : ''}</span></div>
+                <div class="info"><strong>${a.destaque === true ? '⭐ ' : ''}${esc(a.titulo)}</strong><span style="font-size:11.5px;color:var(--muted);">${esc(precoTxt)}${a.situacao && a.situacao !== 'Disponível' ? ' · ' + esc(a.situacao) : ''}${a.ativo === false ? ' · oculto' : ''}</span></div>
                 <div class="acoes">
                     <button type="button" onclick="abrirFormAnuncio('${empresaId}', '${empresa.categoria}', '${doc.id}', '${status}')">Editar</button>
                     <button type="button" class="del" onclick="excluirAnuncio('${empresaId}', '${doc.id}')">Excluir</button>
@@ -3294,7 +3320,7 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
         titulo:'', preco:'', descricao:'', fotos:[], operacao:'Venda', tipo_imovel:'Casa',
         area_m2:'', quartos:'', banheiros:'', vaga_garagem:'', condominio:'', iptu:'', destaque:false,
         marca:'', modelo:'', ano_fab:'', ano_modelo:'', km:'', combustivel:'Flex', cambio:'Manual',
-        carroceria:'Hatch', cor:'', placa_final:'', cidade_veiculo:''
+        carroceria:'Hatch', cor:'', placa_final:'', cidade_veiculo:'', situacao:'Disponível'
     };
     if(anuncioId){
         const doc = await db.collection('empresas').doc(empresaId).collection('anuncios').doc(anuncioId).get();
@@ -3316,7 +3342,7 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
             </div>
             <div>
                 <label style="font-size:12px;color:var(--muted);">Operação</label>
-                <select id="anOperacao" style="${campoEstilo}">
+                <select id="anOperacao" style="${campoEstilo}" onchange="atualizarOpcoesSituacao()">
                     <option ${a.operacao==='Venda'?'selected':''}>Venda</option>
                     <option ${a.operacao==='Aluguel'?'selected':''}>Aluguel</option>
                 </select>
@@ -3431,6 +3457,12 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
             <input id="anTitulo" type="text" maxlength="120" placeholder="${isImovel ? 'Ex: Apartamento 2 quartos no Centro' : (isAutomovel ? 'Ex: Subaru Forester 2.5xtt 2011' : 'Título do anúncio')}" required value="${esc(a.titulo)}" style="${campoEstilo}margin-bottom:10px;">
             <input id="anPreco" type="number" min="0" step="0.01" placeholder="${isImovel ? (a.operacao==='Aluguel' ? 'Aluguel (R$/mês)' : 'Valor do imóvel (R$)') : 'Preço (R$)'}" value="${a.preco ?? ''}" style="${campoEstilo}margin-bottom:10px;">
             <textarea id="anDescricao" maxlength="800" placeholder="Detalhes" style="${campoEstilo}min-height:70px;margin-bottom:4px;">${esc(a.descricao)}</textarea>
+            <div style="margin-top:10px;">
+                <label style="font-size:12px;color:var(--muted);">Situação do anúncio</label>
+                <select id="anSituacao" data-cat="${esc(categoria)}" style="${campoEstilo}">
+                    ${opcoesSituacao(categoria, a.operacao).map(o => `<option ${(a.situacao === o || ((a.situacao === 'Vendido' || a.situacao === 'Alugado') && o === opcoesSituacao(categoria, a.operacao)[2])) ? 'selected' : ''}>${o}</option>`).join('')}
+                </select>
+            </div>
             ${camposImovel}
             ${camposAutomoveis}
             ${campoDestaque}
@@ -3569,6 +3601,7 @@ async function salvarAnuncio(e, empresaId, categoria, anuncioId){
         fotos: anuncioFotosAtuais.slice(0, 6),
         categoria: categoria,
         ativo: true,
+        situacao: (document.getElementById('anSituacao') || {}).value || 'Disponível',
         destaque: destaque,
         atualizado_em: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -3744,6 +3777,7 @@ function aplicarFiltrosAnuncios(pref){
     else if(ordem === 'preco_desc') lista.sort((x, y) => num(y.a.preco, -1) - num(x.a.preco, -1));
     else if(ordem === 'km_asc') lista.sort((x, y) => num(x.a.km, Infinity) - num(y.a.km, Infinity));
     else if(ordem === 'ano_desc') lista.sort((x, y) => num(y.a.ano_modelo, 0) - num(x.a.ano_modelo, 0));
+    lista = lista.filter(x => !anuncioEncerrado(x.a)).concat(lista.filter(x => anuncioEncerrado(x.a)));   // vendidos/alugados vão pro fim
     _galeriaFotos = [];
     grid.innerHTML = lista.map(({ id, a, emp }) => renderAnuncioCard(a, id, emp || ctx.emp, ctx.global)).join('');
     const vazio = document.getElementById(ctx.vazio);
@@ -3876,10 +3910,10 @@ function renderAnuncioCard(a, anuncioId, empresa, mostrarEmpresa){
         ? [a.carroceria || '', a.cor || '', a.cidade_veiculo || '', (a.placa_final !== null && a.placa_final !== undefined && a.placa_final !== '') ? 'Placa final ' + a.placa_final : ''].filter(Boolean).join(' · ')
         : '';
     return `
-        <div class="anuncio-card" onclick="abrirDetalheAnuncio('${anuncioId}')">
+        <div class="anuncio-card${anuncioEncerrado(a) ? ' encerrado' : ''}" onclick="abrirDetalheAnuncio('${anuncioId}')">
             ${foto}
             <div class="anuncio-body">
-                ${badgeDestaque}${badge}
+                ${badgeDestaque}${badge}${badgeSituacao(a)}
                 <p class="anuncio-titulo">${selo}${esc(a.titulo)}</p>
                 ${precoTxt && !temValoresExtra ? `<p class="anuncio-preco">${esc(precoTxt)}</p>` : ''}
                 ${blocoValores}
@@ -4011,7 +4045,7 @@ function renderDetalheAnuncioModal(a){
         <button type="button" class="anuncio-voltar" onclick="viewProfile('${a.empresaId}')">‹ Voltar para ${esc(a.empresaNome || 'a empresa')}</button>
         ${fotoHtml}
         <div style="margin-top:14px;">
-            ${badgeDestaque}${badge}
+            ${badgeDestaque}${badge}${badgeSituacao(a)}
             <h3 style="margin:4px 0 2px;">${isAuto ? seloMarca(a.marca) : ''}${esc(a.titulo)}</h3>
             ${precoTxt && !temExtra ? `<p class="anuncio-preco" style="font-size:18px;">${esc(precoTxt)}</p>` : ''}
             ${valoresHtml}
@@ -4021,10 +4055,10 @@ function renderDetalheAnuncioModal(a){
             ${linkMapa}
             ${a.descricao ? `<p style="font-size:14px;color:#4A4E55;line-height:1.55;margin-top:14px;white-space:pre-wrap;overflow-wrap:anywhere;">${esc(a.descricao)}</p>` : ''}
         </div>
-        <div class="anuncio-detalhe-acoes">
-            ${btnWhats}${btnEmail}
-        </div>
-        ${(!btnWhats && !btnEmail) ? `<p style="font-size:12px;color:var(--muted);margin-top:10px;">Esta empresa não informou um contato direto.</p>` : ''}
+        ${anuncioEncerrado(a)
+            ? `<p style="font-size:13px;color:var(--muted);margin-top:16px;padding:12px 14px;border-radius:10px;background:#F1F4F3;">Este anúncio já foi ${a.situacao === 'Alugado' ? 'alugado' : 'vendido'}. Veja os outros anúncios da empresa.</p>`
+            : `<div class="anuncio-detalhe-acoes">${btnWhats}${btnEmail}</div>`}
+        ${(!anuncioEncerrado(a) && !btnWhats && !btnEmail) ? `<p style="font-size:12px;color:var(--muted);margin-top:10px;">Esta empresa não informou um contato direto.</p>` : ''}
     `);
     if(fotos.length){
         const elCarousel = document.querySelector('#modalBody .anuncio-foto-carousel');
