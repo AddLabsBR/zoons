@@ -661,6 +661,25 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 .anuncio-badge.situacao.encerrado{background:#EEE;color:#555}
 .anuncio-card.encerrado .anuncio-foto-carousel,.anuncio-card.encerrado .anuncio-foto-vazia{filter:grayscale(1);opacity:.65}
 .anuncio-card.encerrado .anuncio-titulo,.anuncio-card.encerrado .anuncio-preco{opacity:.6}
+.anuncio-badge.celtipo{background:#E7F3FF;color:#1D5FA8;margin-left:4px}
+.anuncio-badge.off{background:#E5322D;color:#fff;margin-left:4px}
+.preco-antigo{color:var(--muted);font-weight:500;font-size:.82em}
+.anuncio-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.anuncio-chips span{font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;background:#EAF8F0;color:var(--green-d)}
+.cel-tipo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cel-tipo button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:12px;border-radius:14px;border:1.5px solid var(--line-strong);background:#fff;font-family:inherit;cursor:pointer;transition:.18s;color:var(--ink)}
+.cel-tipo button svg{width:22px;height:22px;color:var(--muted)}
+.cel-tipo button b{font-size:13px}
+.cel-tipo button span{font-size:10.5px;color:var(--muted);line-height:1.3}
+.cel-tipo button.on{border-color:var(--green);background:linear-gradient(160deg,#F1FBF6,#fff);box-shadow:0 8px 20px -12px rgba(18,160,92,.6)}
+.cel-tipo button.on svg{color:var(--green)}
+.cel-label{display:block;font-size:12px;color:var(--muted);margin:12px 0 6px}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{border:1.5px solid var(--line-strong);background:#fff;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;color:var(--ink);transition:.15s}
+.pill.on{background:var(--green);border-color:var(--green);color:#fff}
+.cel-check{display:flex;align-items:center;gap:8px;font-size:12.5px;margin-top:12px;cursor:pointer}
+.cel-dica{font-size:11.5px;color:#E5322D;font-weight:700;margin:4px 0 0;min-height:14px}
+.cel-cta{font-size:14px;font-weight:700;color:var(--ink);margin:18px 0 -6px}
 .anuncios-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .anuncios-filtros select,.anuncios-filtros input{flex:1 1 105px;min-width:0;padding:8px 10px;border-radius:9px;border:1.5px solid var(--line-strong);font-size:12.5px;font-family:inherit;background:#fff;color:var(--ink)}
 .anuncio-card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;transition:.15s;cursor:pointer}
@@ -1912,6 +1931,72 @@ const NETLIFY_FUNCTIONS_BASE = 'https://achou-plus-backend.netlify.app/.netlify/
 const CLOUDINARY_CLOUD_NAME = 'zzhznqvi';
 const CLOUDINARY_UPLOAD_PRESET = 'zoons_anuncios';
 
+/* ---------- Celulares: acessórios (capinha, película...) e assistência técnica ---------- */
+const ACESSORIOS = ['Capinha','Película','Fone de ouvido','Cabo','Carregador','Power bank','Suporte','Caixa de som','Outro'];
+const SERVICOS_CEL = ['Troca de tela','Troca de bateria','Conector de carga','Desbloqueio / Formatação','Software / Atualização','Limpeza / Oxidação','Câmera / Alto-falante','Outro'];
+const GARANTIAS = ['Sem garantia','30 dias','90 dias','6 meses','1 ano'];
+const PRAZOS_CEL = ['Na hora','Até 1 hora','Mesmo dia','1 a 2 dias','Sob avaliação'];
+const ATENDIMENTOS_CEL = ['Na loja','Buscamos e entregamos','Na loja ou delivery'];
+function ehCelulares(categoria){ return categoria === 'Celulares'; }
+function descontoPct(a){
+    return (typeof a.preco === 'number' && typeof a.preco_original === 'number' && a.preco_original > a.preco && a.preco > 0)
+        ? Math.round((1 - a.preco / a.preco_original) * 100) : 0;
+}
+function badgeCel(a){
+    if(!ehCelulares(a.categoria)) return '';
+    const tipo = a.tipo_celular === 'Assistência' ? 'ASSISTÊNCIA' : (a.tipo_celular === 'Acessório' ? 'ACESSÓRIO' : '');
+    const off = descontoPct(a);
+    return (tipo ? `<span class="anuncio-badge celtipo">${tipo}</span>` : '') + (off ? `<span class="anuncio-badge off">-${off}% OFF</span>` : '');
+}
+// Preço de/por (riscado + atual). `grande` = versão da janela de detalhe
+function precoCelHTML(a, grande){
+    const f = v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: Number.isInteger(Number(v)) ? 0 : 2 });
+    const tem = typeof a.preco === 'number';
+    if(!tem) return a.tipo_celular === 'Assistência' ? `<p class="anuncio-preco">Orçamento sem compromisso</p>` : '';
+    const antigo = descontoPct(a) ? `<s class="preco-antigo">${f(a.preco_original)}</s> ` : '';
+    return `<p class="anuncio-preco"${grande ? ' style="font-size:22px;margin-top:6px;"' : ''}>${antigo}${f(a.preco)}</p>`;
+}
+function chipsCelular(a){
+    if(!ehCelulares(a.categoria)) return [];
+    const c = [];
+    if(a.item) c.push(a.item);
+    if(a.tipo_celular === 'Assistência'){
+        if(a.orcamento_gratis) c.push('Orçamento grátis');
+        if(a.prazo) c.push(a.prazo);
+        if(a.garantia && a.garantia !== 'Sem garantia') c.push('Garantia ' + a.garantia);
+        if(a.atendimento && a.atendimento !== 'Na loja') c.push(a.atendimento);
+    } else {
+        if(a.pronta_entrega) c.push('Pronta entrega');
+        if(a.garantia && a.garantia !== 'Sem garantia') c.push('Garantia ' + a.garantia);
+    }
+    return c;
+}
+function chipsHTML(a, max){
+    const c = chipsCelular(a).slice(0, max || 99);
+    return c.length ? `<div class="anuncio-chips">${c.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : '';
+}
+// Seletor de "pills" do formulário
+function escolherPill(btn, inputId){
+    const box = btn.parentElement;
+    box.querySelectorAll('.pill').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    const el = document.getElementById(inputId);
+    if(el) el.value = btn.dataset.v;
+}
+function alternarTipoCelular(tipo){
+    document.getElementById('anTipoCel').value = tipo;
+    document.querySelectorAll('.cel-tipo button').forEach(b => b.classList.toggle('on', b.dataset.v === tipo));
+    document.getElementById('celAcessorio').style.display = tipo === 'Acessório' ? '' : 'none';
+    document.getElementById('celAssistencia').style.display = tipo === 'Assistência' ? '' : 'none';
+}
+function atualizarDescontoPreview(){
+    const p = Number((document.getElementById('anPreco') || {}).value) || 0;
+    const o = Number((document.getElementById('anPrecoOriginal') || {}).value) || 0;
+    const el = document.getElementById('anDescontoPreview');
+    if(!el) return;
+    el.textContent = (o > p && p > 0) ? `-${Math.round((1 - p / o) * 100)}% OFF — aparece em destaque no anúncio` : '';
+}
+
 /* Categorias de serviços (Academia, Beleza...) têm campos próprios: tipo de cobrança, modalidades e horário */
 const CATEGORIAS_SERVICO = ['Academia', 'Beleza', 'Pets', 'Construção', 'Alimentação'];
 const EXEMPLO_TITULO = {
@@ -1938,6 +2023,7 @@ function precoComCobranca(a){
 
 /* Situação do anúncio: Disponível / Em análise / Vendido / Alugado — a empresa marca no próprio anúncio */
 function opcoesSituacao(categoria, operacao){
+    if(ehCelulares(categoria)) return ['Disponível', 'Promoção', 'Esgotado'];
     if(ehServico(categoria)) return ['Disponível', 'Promoção'];
     const final = (categoria === 'Imóveis' && operacao === 'Aluguel') ? 'Alugado' : 'Vendido';
     return ['Disponível', 'Em análise', final];
@@ -1952,7 +2038,7 @@ function atualizarOpcoesSituacao(){
     const alvo = (atual === 'Vendido' || atual === 'Alugado') ? ops[2] : atual;
     sel.innerHTML = ops.map(o => `<option ${o === alvo ? 'selected' : ''}>${o}</option>`).join('');
 }
-function anuncioEncerrado(a){ return a && (a.situacao === 'Vendido' || a.situacao === 'Alugado'); }
+function anuncioEncerrado(a){ return a && (a.situacao === 'Vendido' || a.situacao === 'Alugado' || a.situacao === 'Esgotado'); }
 function badgeSituacao(a){
     if(!a || !a.situacao || a.situacao === 'Disponível') return '';
     const cls = anuncioEncerrado(a) ? 'encerrado' : (a.situacao === 'Promoção' ? 'promo' : 'analise');
@@ -2177,7 +2263,7 @@ const cacheListas = {};
 let fase = 'destaque';       // paginação: primeiro 'destaque', depois 'normal'
 
 // Aba "Anúncios" (precisa existir antes do primeiro applyFilters)
-const CATEGORIAS_COM_ANUNCIOS = ['Imóveis', 'Automóveis'];
+const CATEGORIAS_COM_ANUNCIOS = ['Imóveis', 'Automóveis', 'Celulares'];
 const GLOBAL_MAX_EMPRESAS = 40;
 const _anunciosGlobalCache = {};
 let _anunciosGlobalVersao = 0;
@@ -3347,7 +3433,8 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
         titulo:'', preco:'', descricao:'', fotos:[], operacao:'Venda', tipo_imovel:'Casa',
         area_m2:'', quartos:'', banheiros:'', vaga_garagem:'', condominio:'', iptu:'', destaque:false,
         marca:'', modelo:'', ano_fab:'', ano_modelo:'', km:'', combustivel:'Flex', cambio:'Manual',
-        carroceria:'Hatch', cor:'', placa_final:'', cidade_veiculo:'', situacao:'Disponível'
+        carroceria:'Hatch', cor:'', placa_final:'', cidade_veiculo:'', situacao:'Disponível',
+        tipo_celular:'Acessório', item:'', compativel:'', preco_original:'', garantia:'Sem garantia', pronta_entrega:false, prazo:'Mesmo dia', atendimento:'Na loja', orcamento_gratis:false
     };
     if(anuncioId){
         const doc = await db.collection('empresas').doc(empresaId).collection('anuncios').doc(anuncioId).get();
@@ -3358,6 +3445,7 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
     const isImovel = categoria === 'Imóveis';
     const isAutomovel = categoria === 'Automóveis';
     const isServico = ehServico(categoria);
+    const isCel = ehCelulares(categoria);
     const podeDestacar = assinaturaStatus === 'ativa';
     const campoEstilo = 'width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid var(--line-strong);font-size:13.5px;';
     const camposImovel = !isImovel ? '' : `
@@ -3415,6 +3503,56 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
             <p id="anMapaStatus" style="font-size:11.5px;color:var(--muted);margin:0 0 6px;">Toque no mapa para marcar o local exato do imóvel</p>
             <div id="anMapaImovel" style="height:190px;border-radius:10px;border:1.5px solid var(--line-strong);overflow:hidden;"></div>
         </div>
+    `;
+    const pills = (lista, inputId, atual) => `<div class="pills">${lista.map(o => `<button type="button" class="pill${o === atual ? ' on' : ''}" data-v="${esc(o)}" onclick="escolherPill(this,'${inputId}')">${esc(o)}</button>`).join('')}</div>`;
+    const tipoCel = a.tipo_celular === 'Assistência' ? 'Assistência' : 'Acessório';
+    const camposCelular = !isCel ? '' : `
+        <p class="eyebrow" style="margin:16px 0 8px;">O QUE VOCÊ ESTÁ ANUNCIANDO?</p>
+        <input type="hidden" id="anTipoCel" value="${tipoCel}">
+        <div class="cel-tipo">
+            <button type="button" data-v="Acessório" class="${tipoCel === 'Acessório' ? 'on' : ''}" onclick="alternarTipoCelular('Acessório')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/></svg>
+                <b>Acessório</b><span>Capinha, película, fone, cabo...</span>
+            </button>
+            <button type="button" data-v="Assistência" class="${tipoCel === 'Assistência' ? 'on' : ''}" onclick="alternarTipoCelular('Assistência')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5 5L4 17l3 3 5.7-5.7a4 4 0 0 0 5-5l-2.4 2.4-2.6-.6-.6-2.6Z"/></svg>
+                <b>Assistência técnica</b><span>Conserto, troca de tela, bateria...</span>
+            </button>
+        </div>
+
+        <div id="celAcessorio" style="${tipoCel === 'Acessório' ? '' : 'display:none;'}">
+            <label class="cel-label">Qual acessório?</label>
+            <input type="hidden" id="anItemA" value="${tipoCel === 'Acessório' ? esc(a.item || '') : ''}">
+            ${pills(ACESSORIOS, 'anItemA', tipoCel === 'Acessório' ? a.item : '')}
+            <label class="cel-label">Compatível com</label>
+            <input id="anCompativelA" type="text" maxlength="120" placeholder="Ex: iPhone 13, Galaxy S23, universal" value="${tipoCel === 'Acessório' ? esc(a.compativel || '') : ''}" style="${campoEstilo}">
+            <label class="cel-label">Preço antes (opcional — mostra o desconto)</label>
+            <input id="anPrecoOriginal" type="number" min="0" step="0.01" placeholder="Ex: 59.90" value="${a.preco_original ?? ''}" oninput="atualizarDescontoPreview()" style="${campoEstilo}">
+            <p id="anDescontoPreview" class="cel-dica"></p>
+            <label class="cel-check"><input id="anProntaEntrega" type="checkbox" ${a.pronta_entrega ? 'checked' : ''}> Pronta entrega (em estoque)</label>
+        </div>
+
+        <div id="celAssistencia" style="${tipoCel === 'Assistência' ? '' : 'display:none;'}">
+            <label class="cel-label">Qual serviço?</label>
+            <input type="hidden" id="anItemS" value="${tipoCel === 'Assistência' ? esc(a.item || '') : ''}">
+            ${pills(SERVICOS_CEL, 'anItemS', tipoCel === 'Assistência' ? a.item : '')}
+            <label class="cel-label">Marcas e modelos que você atende</label>
+            <input id="anCompativelS" type="text" maxlength="120" placeholder="Ex: iPhone, Samsung, Motorola, Xiaomi" value="${tipoCel === 'Assistência' ? esc(a.compativel || '') : ''}" style="${campoEstilo}">
+            <div class="anuncio-form-grid" style="margin-top:10px;">
+                <div>
+                    <label class="cel-label" style="margin-top:0;">Prazo</label>
+                    <select id="anPrazo" style="${campoEstilo}">${PRAZOS_CEL.map(o => `<option ${a.prazo === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
+                </div>
+                <div>
+                    <label class="cel-label" style="margin-top:0;">Atendimento</label>
+                    <select id="anAtendimento" style="${campoEstilo}">${ATENDIMENTOS_CEL.map(o => `<option ${a.atendimento === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
+                </div>
+            </div>
+            <label class="cel-check"><input id="anOrcamentoGratis" type="checkbox" ${a.orcamento_gratis ? 'checked' : ''}> Orçamento grátis e sem compromisso</label>
+        </div>
+
+        <label class="cel-label">Garantia</label>
+        <select id="anGarantia" style="${campoEstilo}">${GARANTIAS.map(o => `<option ${a.garantia === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
     `;
     const camposServico = !isServico ? '' : `
         <div class="anuncio-form-grid" style="margin-top:10px;">
@@ -3500,8 +3638,8 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
     showModal(`
         <h3>${anuncioId ? 'Editar anúncio' : 'Novo anúncio'}</h3>
         <form onsubmit="return salvarAnuncio(event, '${empresaId}', '${categoria}', ${anuncioId ? `'${anuncioId}'` : 'null'})">
-            <input id="anTitulo" type="text" maxlength="120" placeholder="${isImovel ? 'Ex: Apartamento 2 quartos no Centro' : (isAutomovel ? 'Ex: Subaru Forester 2.5xtt 2011' : (EXEMPLO_TITULO[categoria] || 'Título do anúncio'))}" required value="${esc(a.titulo)}" style="${campoEstilo}margin-bottom:10px;">
-            <input id="anPreco" type="number" min="0" step="0.01" placeholder="${isImovel ? (a.operacao==='Aluguel' ? 'Aluguel (R$/mês)' : 'Valor do imóvel (R$)') : (isServico ? 'Preço (R$) — deixe vazio se for sob orçamento' : 'Preço (R$)')}" value="${a.preco ?? ''}" style="${campoEstilo}margin-bottom:10px;">
+            <input id="anTitulo" type="text" maxlength="120" placeholder="${isImovel ? 'Ex: Apartamento 2 quartos no Centro' : (isAutomovel ? 'Ex: Subaru Forester 2.5xtt 2011' : (isCel ? 'Ex: Capinha antichoque iPhone 13  ·  Troca de tela Samsung' : (EXEMPLO_TITULO[categoria] || 'Título do anúncio')))}" required value="${esc(a.titulo)}" style="${campoEstilo}margin-bottom:10px;">
+            <input id="anPreco" oninput="atualizarDescontoPreview()" type="number" min="0" step="0.01" placeholder="${isImovel ? (a.operacao==='Aluguel' ? 'Aluguel (R$/mês)' : 'Valor do imóvel (R$)') : (isServico ? 'Preço (R$) — deixe vazio se for sob orçamento' : (isCel ? 'Preço atual (R$) · vazio = sob orçamento' : 'Preço (R$)'))}" value="${a.preco ?? ''}" style="${campoEstilo}margin-bottom:10px;">
             <textarea id="anDescricao" maxlength="800" placeholder="Detalhes" style="${campoEstilo}min-height:70px;margin-bottom:4px;">${esc(a.descricao)}</textarea>
             <div style="margin-top:10px;">
                 <label style="font-size:12px;color:var(--muted);">Situação do anúncio</label>
@@ -3512,6 +3650,7 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
             ${camposImovel}
             ${camposAutomoveis}
             ${camposServico}
+            ${camposCelular}
             ${campoDestaque}
             <p style="font-size:12px;color:var(--muted);margin-top:12px;">Fotos (até 6)</p>
             <div class="anuncio-fotos-row" id="anuncioFotos"></div>
@@ -3666,6 +3805,25 @@ async function salvarAnuncio(e, empresaId, categoria, anuncioId){
         dados.lat = anLatAtual;
         dados.lng = anLngAtual;
     }
+    if(ehCelulares(categoria)){
+        const tipo = document.getElementById('anTipoCel').value === 'Assistência' ? 'Assistência' : 'Acessório';
+        dados.tipo_celular = tipo;
+        dados.garantia = document.getElementById('anGarantia').value;
+        if(tipo === 'Acessório'){
+            dados.item = document.getElementById('anItemA').value;
+            dados.compativel = document.getElementById('anCompativelA').value.trim();
+            dados.preco_original = Number(document.getElementById('anPrecoOriginal').value) || null;
+            dados.pronta_entrega = document.getElementById('anProntaEntrega').checked;
+            dados.prazo = null; dados.atendimento = null; dados.orcamento_gratis = false;
+        } else {
+            dados.item = document.getElementById('anItemS').value;
+            dados.compativel = document.getElementById('anCompativelS').value.trim();
+            dados.prazo = document.getElementById('anPrazo').value;
+            dados.atendimento = document.getElementById('anAtendimento').value;
+            dados.orcamento_gratis = document.getElementById('anOrcamentoGratis').checked;
+            dados.preco_original = null; dados.pronta_entrega = false;
+        }
+    }
     if(ehServico(categoria)){
         dados.cobranca = document.getElementById('anCobranca').value;
         dados.modalidades = document.getElementById('anModalidades').value.trim();
@@ -3793,6 +3951,8 @@ function filtrosAnunciosHTML(pref, minimo){
     if(cat === 'Imóveis'){
         extra = sel('Operacao', 'Venda/Aluguel', ['Venda','Aluguel']) + sel('Tipo', 'Tipo', unicos('tipo_imovel'))
               + `<select id="fan${pref}Quartos" onchange="aplicarFiltrosAnuncios('${pref}')" aria-label="Quartos"><option value="">Quartos</option><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option><option value="4">4+</option></select>`;
+    } else if(cat === 'Celulares'){
+        extra = sel('TipoCel', 'Tipo', unicos('tipo_celular')) + sel('Item', 'Item', unicos('item')) + sel('Garantia', 'Garantia', unicos('garantia'));
     } else if(cat === 'Automóveis'){
         extra = sel('Marca', 'Marca', unicos('marca')) + sel('Combustivel', 'Combustível', unicos('combustivel')) + sel('Cambio', 'Câmbio', unicos('cambio'));
     }
@@ -3817,6 +3977,9 @@ function aplicarFiltrosAnuncios(pref){
         if(v('Operacao') && a.operacao !== v('Operacao')) return false;
         if(v('Tipo') && a.tipo_imovel !== v('Tipo')) return false;
         if(quartos && !((a.quartos || 0) >= quartos)) return false;
+        if(v('TipoCel') && a.tipo_celular !== v('TipoCel')) return false;
+        if(v('Item') && a.item !== v('Item')) return false;
+        if(v('Garantia') && a.garantia !== v('Garantia')) return false;
         if(v('Marca') && a.marca !== v('Marca')) return false;
         if(v('Combustivel') && a.combustivel !== v('Combustivel')) return false;
         if(v('Cambio') && a.cambio !== v('Cambio')) return false;
@@ -3965,9 +4128,10 @@ function renderAnuncioCard(a, anuncioId, empresa, mostrarEmpresa){
         <div class="anuncio-card${anuncioEncerrado(a) ? ' encerrado' : ''}" onclick="abrirDetalheAnuncio('${anuncioId}')">
             ${foto}
             <div class="anuncio-body">
-                ${badgeDestaque}${badge}${badgeSituacao(a)}
+                ${badgeDestaque}${badge}${badgeSituacao(a)}${badgeCel(a)}
                 <p class="anuncio-titulo">${selo}${esc(a.titulo)}</p>
-                ${precoTxt && !temValoresExtra ? `<p class="anuncio-preco">${esc(precoTxt)}</p>` : ''}
+                ${ehCelulares(a.categoria) ? precoCelHTML(a, false) : (precoTxt && !temValoresExtra ? `<p class="anuncio-preco">${esc(precoTxt)}</p>` : '')}
+                ${ehCelulares(a.categoria) ? chipsHTML(a, 3) : ''}
                 ${blocoValores}
                 ${metaImovel ? `<p class="anuncio-meta">${esc(metaImovel)}</p>` : ''}
                 ${enderecoTxt ? `<p class="anuncio-meta">${esc(enderecoTxt)}</p>` : ''}
@@ -4058,6 +4222,11 @@ function renderDetalheAnuncioModal(a){
         if(a.placa_final !== null && a.placa_final !== undefined && a.placa_final !== '') linhasFicha.push(['Final da placa', a.placa_final]);
         if(a.cidade_veiculo) linhasFicha.push(['Cidade', a.cidade_veiculo]);
     }
+    if(ehCelulares(a.categoria)){
+        if(a.compativel) linhasFicha.push([a.tipo_celular === 'Assistência' ? 'Atendemos' : 'Compatível com', a.compativel]);
+        if(a.tipo_celular === 'Assistência' && a.prazo) linhasFicha.push(['Prazo', a.prazo]);
+        if(a.garantia) linhasFicha.push(['Garantia', a.garantia]);
+    }
     if(ehServico(a.categoria)){
         if(a.modalidades) linhasFicha.push([a.categoria === 'Academia' ? 'Modalidades' : 'Incluso', a.modalidades]);
         if(a.horario) linhasFicha.push(['Horário', a.horario]);
@@ -4103,9 +4272,9 @@ function renderDetalheAnuncioModal(a){
         <button type="button" class="anuncio-voltar" onclick="viewProfile('${a.empresaId}')">‹ Voltar para ${esc(a.empresaNome || 'a empresa')}</button>
         ${fotoHtml}
         <div style="margin-top:14px;">
-            ${badgeDestaque}${badge}${badgeSituacao(a)}
+            ${badgeDestaque}${badge}${badgeSituacao(a)}${badgeCel(a)}
             <h3 style="margin:4px 0 2px;">${isAuto ? seloMarca(a.marca) : ''}${esc(a.titulo)}</h3>
-            ${precoTxt && !temExtra ? `<p class="anuncio-preco" style="font-size:18px;">${esc(precoTxt)}</p>` : ''}
+            ${ehCelulares(a.categoria) ? precoCelHTML(a, true) + chipsHTML(a) : (precoTxt && !temExtra ? `<p class="anuncio-preco" style="font-size:18px;">${esc(precoTxt)}</p>` : '')}
             ${valoresHtml}
             ${fichaHtml}
             ${metaImovel ? `<p class="anuncio-meta" style="font-size:13px;">${esc(metaImovel)}</p>` : ''}
@@ -4114,8 +4283,8 @@ function renderDetalheAnuncioModal(a){
             ${a.descricao ? `<p style="font-size:14px;color:#4A4E55;line-height:1.55;margin-top:14px;white-space:pre-wrap;overflow-wrap:anywhere;">${esc(a.descricao)}</p>` : ''}
         </div>
         ${anuncioEncerrado(a)
-            ? `<p style="font-size:13px;color:var(--muted);margin-top:16px;padding:12px 14px;border-radius:10px;background:#F1F4F3;">Este anúncio já foi ${a.situacao === 'Alugado' ? 'alugado' : 'vendido'}. Veja os outros anúncios da empresa.</p>`
-            : `<div class="anuncio-detalhe-acoes">${btnWhats}${btnEmail}</div>`}
+            ? `<p style="font-size:13px;color:var(--muted);margin-top:16px;padding:12px 14px;border-radius:10px;background:#F1F4F3;">${a.situacao === 'Esgotado' ? 'Este produto está esgotado no momento.' : 'Este anúncio já foi ' + (a.situacao === 'Alugado' ? 'alugado' : 'vendido') + '.'} Veja os outros anúncios da empresa.</p>`
+            : `${ehCelulares(a.categoria) && (btnWhats || btnEmail) ? `<p class="cel-cta">${a.tipo_celular === 'Assistência' ? 'Peça seu orçamento agora — resposta rápida!' : 'Gostou? Fale com a loja agora!'}</p>` : ''}<div class="anuncio-detalhe-acoes">${btnWhats}${btnEmail}</div>`}
         ${(!anuncioEncerrado(a) && !btnWhats && !btnEmail) ? `<p style="font-size:12px;color:var(--muted);margin-top:10px;">Esta empresa não informou um contato direto.</p>` : ''}
     `);
     if(fotos.length){
