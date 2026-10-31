@@ -654,6 +654,9 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 
 /* Anúncios — fotos, preço e detalhes por categoria (ênfase em Imóveis) */
 .anuncios-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:4px}
+.anuncios-grid-global{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.anuncios-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.anuncios-filtros select,.anuncios-filtros input{flex:1 1 105px;min-width:0;padding:8px 10px;border-radius:9px;border:1.5px solid var(--line-strong);font-size:12.5px;font-family:inherit;background:#fff;color:var(--ink)}
 .anuncio-card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;transition:.15s;cursor:pointer}
 .anuncio-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .anuncio-foto{width:100%;aspect-ratio:4/3;object-fit:cover;background:#F1F4F3;display:block}
@@ -1553,6 +1556,7 @@ html{overflow-x:hidden}
             <div class="view-toggle">
                 <button class="active" id="btnViewList" onclick="switchView('list')">Lista</button>
                 <button id="btnViewMap" onclick="switchView('map')">Mapa</button>
+                <button id="btnViewAnuncios" style="display:none;" onclick="switchView('anuncios')">Anúncios</button>
             </div>
         </div>
     </div>
@@ -1564,6 +1568,8 @@ html{overflow-x:hidden}
     <div id="mapView">
         <div id="leafletMap"></div>
     </div>
+
+    <div id="anunciosView" style="display:none;margin-top:8px;"></div>
 
 </div>
 
@@ -2117,6 +2123,13 @@ let filtroVersao = 0;         // descarta respostas antigas quando o filtro muda
 const cacheListas = {};
 let fase = 'destaque';       // paginação: primeiro 'destaque', depois 'normal'
 
+// Aba "Anúncios" (precisa existir antes do primeiro applyFilters)
+const CATEGORIAS_COM_ANUNCIOS = ['Imóveis', 'Automóveis'];
+const GLOBAL_MAX_EMPRESAS = 40;
+const _anunciosGlobalCache = {};
+let _anunciosGlobalVersao = 0;
+let _viewAtual = 'list';
+
 applyFilters();
 atualizarContadoresCategorias();
 tentarRestaurarLocalizacao();
@@ -2261,6 +2274,11 @@ function mostrarErro(err){
 /* Ponto de entrada: recomeça a listagem com os filtros atuais */
 function applyFilters(){
     const versao = ++filtroVersao;
+    if(!atualizarAbaAnuncios() && _viewAtual === 'anuncios'){
+        switchView('list');   // saiu de Imóveis/Automóveis: volta pra lista (switchView chama applyFilters de novo)
+        return;
+    }
+    if(_viewAtual === 'anuncios'){ carregarAnunciosGlobais(); return; }
     termoAplicado = norm(valorFiltro('searchInput'));
     modoCompleto = termoAplicado !== '' || userLat !== null || mapaAtivo();
     if(modoCompleto){
@@ -2476,14 +2494,24 @@ function closeMobileMenu(){
 }
 
 function switchView(view){
+    const veioDeAnuncios = _viewAtual === 'anuncios';
+    _viewAtual = view;
     document.getElementById('btnViewList').classList.toggle('active', view === 'list');
     document.getElementById('btnViewMap').classList.toggle('active', view === 'map');
+    const btnAn = document.getElementById('btnViewAnuncios');
+    if(btnAn) btnAn.classList.toggle('active', view === 'anuncios');
     document.getElementById('results').style.display = view === 'list' ? '' : 'none';
     document.getElementById('mapView').classList.toggle('active', view === 'map');
+    const av = document.getElementById('anunciosView');
+    if(av) av.style.display = view === 'anuncios' ? '' : 'none';
     if(view === 'map'){
         if(!leafletMap) initMap();
         setTimeout(() => { if(leafletMap) leafletMap.invalidateSize(); }, 50); // corrige o tamanho ao exibir
         applyFilters(); // o mapa mostra todas as empresas do filtro, não só a primeira página
+    } else if(view === 'anuncios'){
+        carregarAnunciosGlobais();
+    } else if(veioDeAnuncios){
+        applyFilters(); // volta pra lista de empresas (o rótulo de contagem foi trocado pelo dos anúncios)
     }
 }
 
@@ -3639,6 +3667,11 @@ async function excluirAnuncio(empresaId, anuncioId){
     }
 }
 
+const _anCtx = {
+    P: { lista: [], emp: null, grid: 'anunciosGrid',  vazio: 'anunciosVazio',  global: false },   // perfil da empresa
+    G: { lista: [], emp: null, grid: 'anunciosGridG', vazio: 'anunciosVazioG', global: true  }    // aba "Anúncios" (todas as empresas)
+};
+
 function carregarAnunciosPublicos(empresa){
     db.collection('empresas').doc(empresa.id).collection('anuncios')
       .orderBy('criado_em', 'desc')
@@ -3650,27 +3683,137 @@ function carregarAnunciosPublicos(empresa){
           const docs = snap.docs.filter(d => d.data().ativo !== false)
               .sort((x, y) => (y.data().destaque === true ? 1 : 0) - (x.data().destaque === true ? 1 : 0));
           if(docs.length === 0) return;
-          _galeriaFotos = [];
+          _anCtx.P.lista = docs.map(d => ({ id: d.id, a: d.data(), emp: empresa }));
+          _anCtx.P.emp = empresa;
           el.innerHTML = `
               <p class="eyebrow" style="margin-bottom:10px;border-top:1px solid var(--line);padding-top:16px;">ANÚNCIOS</p>
-              <div class="anuncios-grid">
-                  ${docs.map(doc => renderAnuncioCard(doc.data(), doc.id, empresa)).join('')}
-              </div>
+              ${filtrosAnunciosHTML('P', 3)}
+              <div class="anuncios-grid" id="anunciosGrid"></div>
+              <p id="anunciosVazio" class="anuncio-meta" style="display:none;margin-top:10px;font-size:12.5px;">Nenhum anúncio com esses filtros.</p>
           `;
-          // Liga o mini-carrossel de cada card que tem mais de 1 foto
-          el.querySelectorAll('.anuncio-foto-carousel').forEach(elCarousel => {
-              const total = Number(elCarousel.dataset.total) || 1;
-              iniciarCarrosselCard(elCarousel, total);
-          });
+          aplicarFiltrosAnuncios('P');
       })
       .catch(err => console.error('Erro ao carregar anúncios:', err));
+}
+
+/* Filtros dos anúncios — tudo no navegador, sem leituras extras.
+   No perfil só aparecem com 3+ anúncios; na aba "Anúncios" aparecem sempre. */
+function filtrosAnunciosHTML(pref, minimo){
+    const lista = _anCtx[pref].lista;
+    if(lista.length < minimo) return '';
+    const cat = lista[0].a.categoria;
+    const unicos = campo => [...new Set(lista.map(x => x.a[campo]).filter(Boolean))].sort();
+    const sel = (id, rotulo, opcoes) => `<select id="fan${pref}${id}" onchange="aplicarFiltrosAnuncios('${pref}')" aria-label="${rotulo}"><option value="">${rotulo}</option>${opcoes.map(o => `<option>${esc(o)}</option>`).join('')}</select>`;
+    let extra = '';
+    if(cat === 'Imóveis'){
+        extra = sel('Operacao', 'Venda/Aluguel', ['Venda','Aluguel']) + sel('Tipo', 'Tipo', unicos('tipo_imovel'))
+              + `<select id="fan${pref}Quartos" onchange="aplicarFiltrosAnuncios('${pref}')" aria-label="Quartos"><option value="">Quartos</option><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option><option value="4">4+</option></select>`;
+    } else if(cat === 'Automóveis'){
+        extra = sel('Marca', 'Marca', unicos('marca')) + sel('Combustivel', 'Combustível', unicos('combustivel')) + sel('Cambio', 'Câmbio', unicos('cambio'));
+    }
+    const ordens = cat === 'Automóveis'
+        ? '<option value="">Ordenar</option><option value="preco_asc">Menor preço</option><option value="preco_desc">Maior preço</option><option value="km_asc">Menor km</option><option value="ano_desc">Mais novo</option>'
+        : '<option value="">Ordenar</option><option value="preco_asc">Menor preço</option><option value="preco_desc">Maior preço</option>';
+    return `<div class="anuncios-filtros">
+        ${extra}
+        <input id="fan${pref}PrecoMax" type="number" min="0" inputmode="numeric" placeholder="Preço máx. (R$)" oninput="aplicarFiltrosAnuncios('${pref}')">
+        <select id="fan${pref}Ordem" onchange="aplicarFiltrosAnuncios('${pref}')" aria-label="Ordenar">${ordens}</select>
+    </div>`;
+}
+
+function aplicarFiltrosAnuncios(pref){
+    const ctx = _anCtx[pref];
+    const grid = document.getElementById(ctx.grid);
+    if(!grid) return;
+    const v = id => { const el = document.getElementById('fan' + pref + id); return el ? el.value : ''; };
+    const precoMax = Number(v('PrecoMax')) || 0;
+    const quartos = Number(v('Quartos')) || 0;
+    let lista = ctx.lista.filter(({ a }) => {
+        if(v('Operacao') && a.operacao !== v('Operacao')) return false;
+        if(v('Tipo') && a.tipo_imovel !== v('Tipo')) return false;
+        if(quartos && !((a.quartos || 0) >= quartos)) return false;
+        if(v('Marca') && a.marca !== v('Marca')) return false;
+        if(v('Combustivel') && a.combustivel !== v('Combustivel')) return false;
+        if(v('Cambio') && a.cambio !== v('Cambio')) return false;
+        if(precoMax && !(typeof a.preco === 'number' && a.preco <= precoMax)) return false;
+        return true;
+    });
+    const ordem = v('Ordem');
+    const num = (x, vazio) => typeof x === 'number' ? x : vazio;
+    if(ordem === 'preco_asc') lista.sort((x, y) => num(x.a.preco, Infinity) - num(y.a.preco, Infinity));
+    else if(ordem === 'preco_desc') lista.sort((x, y) => num(y.a.preco, -1) - num(x.a.preco, -1));
+    else if(ordem === 'km_asc') lista.sort((x, y) => num(x.a.km, Infinity) - num(y.a.km, Infinity));
+    else if(ordem === 'ano_desc') lista.sort((x, y) => num(y.a.ano_modelo, 0) - num(x.a.ano_modelo, 0));
+    _galeriaFotos = [];
+    grid.innerHTML = lista.map(({ id, a, emp }) => renderAnuncioCard(a, id, emp || ctx.emp, ctx.global)).join('');
+    const vazio = document.getElementById(ctx.vazio);
+    if(vazio) vazio.style.display = lista.length ? 'none' : 'block';
+    grid.querySelectorAll('.anuncio-foto-carousel').forEach(elCarousel => {
+        iniciarCarrosselCard(elCarousel, Number(elCarousel.dataset.total) || 1);
+    });
+}
+
+/* ---------- Aba "Anúncios": anúncios de todas as empresas da categoria (Imóveis/Automóveis) ----------
+   Respeita os filtros de estado e município. Lê as empresas aprovadas da categoria (máx. 40) e, de
+   cada uma, seus anúncios (máx. 20) — só quando a pessoa abre a aba, e com cache de 10 minutos. */
+
+async function carregarAnunciosGlobais(){
+    const box = document.getElementById('anunciosView');
+    if(!box) return;
+    const versao = ++_anunciosGlobalVersao;
+    const chave = [activeCategory, valorFiltro('filterEstado'), valorFiltro('filterMunicipio')].join('|');
+    const rotulo = document.getElementById('resultsLabel');
+    let lista;
+    const emCache = _anunciosGlobalCache[chave];
+    if(emCache && Date.now() - emCache.t < CACHE_MS){
+        lista = emCache.lista;
+    } else {
+        box.innerHTML = '<div class="no-results">CARREGANDO ANÚNCIOS...</div>';
+        try {
+            const snap = await montarQuery().limit(GLOBAL_MAX_EMPRESAS).get();
+            const porEmpresa = await Promise.all(snap.docs.map(async d => {
+                const emp = Object.assign({ id: d.id }, d.data());
+                try {
+                    const r = await db.collection('empresas').doc(d.id).collection('anuncios').orderBy('criado_em', 'desc').limit(20).get();
+                    return r.docs.filter(x => x.data().ativo !== false).map(x => ({ id: x.id, a: x.data(), emp }));
+                } catch(e){ return []; }
+            }));
+            if(versao !== _anunciosGlobalVersao) return;
+            lista = [].concat(...porEmpresa)
+                .sort((x, y) => (y.a.destaque === true ? 1 : 0) - (x.a.destaque === true ? 1 : 0));
+            _anunciosGlobalCache[chave] = { t: Date.now(), lista };
+        } catch(err){
+            console.error('Erro ao carregar anúncios:', err);
+            box.innerHTML = '<div class="no-results">NÃO FOI POSSÍVEL CARREGAR OS ANÚNCIOS AGORA.<br><br><button type="button" class="load-more" onclick="carregarAnunciosGlobais()">Tentar novamente</button></div>';
+            return;
+        }
+    }
+    _anCtx.G.lista = lista;
+    if(rotulo) rotulo.textContent = lista.length + (lista.length === 1 ? ' ANÚNCIO' : ' ANÚNCIOS');
+    if(!lista.length){
+        box.innerHTML = '<div class="no-results">NENHUM ANÚNCIO NESTA CATEGORIA AINDA.</div>';
+        return;
+    }
+    box.innerHTML = `
+        ${filtrosAnunciosHTML('G', 1)}
+        <div class="anuncios-grid anuncios-grid-global" id="anunciosGridG"></div>
+        <p id="anunciosVazioG" class="anuncio-meta" style="display:none;margin-top:10px;font-size:12.5px;">Nenhum anúncio com esses filtros.</p>
+    `;
+    aplicarFiltrosAnuncios('G');
+}
+
+function atualizarAbaAnuncios(){
+    const btn = document.getElementById('btnViewAnuncios');
+    const ok = CATEGORIAS_COM_ANUNCIOS.includes(activeCategory);
+    if(btn) btn.style.display = ok ? '' : 'none';
+    return ok;
 }
 
 // Cache dos anúncios já renderizados nesta sessão (chave = id do anúncio), pra abrir
 // o modal de detalhe (com botões de contato) sem precisar buscar tudo de novo no Firestore.
 let _anunciosData = {};
 
-function renderAnuncioCard(a, anuncioId, empresa){
+function renderAnuncioCard(a, anuncioId, empresa, mostrarEmpresa){
     _anunciosData[anuncioId] = {
         ...a,
         id: anuncioId,
@@ -3744,6 +3887,7 @@ function renderAnuncioCard(a, anuncioId, empresa){
                 ${enderecoTxt ? `<p class="anuncio-meta">${esc(enderecoTxt)}</p>` : ''}
                 ${metaAutomovel ? `<p class="anuncio-meta">${esc(metaAutomovel)}</p>` : ''}
                 ${metaAutomovel2 ? `<p class="anuncio-meta">${esc(metaAutomovel2)}</p>` : ''}
+                ${mostrarEmpresa && empresa ? `<p class="anuncio-meta">por ${esc(empresa.nome)}</p>` : ''}
                 ${linkMapa}
             </div>
         </div>
