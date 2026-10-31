@@ -657,6 +657,7 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 .anuncios-grid-global{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
 .anuncio-badge.situacao{margin-left:4px}
 .anuncio-badge.situacao.analise{background:#E6EFFB;color:#2A5FB0}
+.anuncio-badge.situacao.promo{background:#FFE9E3;color:#C2410C}
 .anuncio-badge.situacao.encerrado{background:#EEE;color:#555}
 .anuncio-card.encerrado .anuncio-foto-carousel,.anuncio-card.encerrado .anuncio-foto-vazia{filter:grayscale(1);opacity:.65}
 .anuncio-card.encerrado .anuncio-titulo,.anuncio-card.encerrado .anuncio-preco{opacity:.6}
@@ -1911,8 +1912,33 @@ const NETLIFY_FUNCTIONS_BASE = 'https://achou-plus-backend.netlify.app/.netlify/
 const CLOUDINARY_CLOUD_NAME = 'zzhznqvi';
 const CLOUDINARY_UPLOAD_PRESET = 'zoons_anuncios';
 
+/* Categorias de serviços (Academia, Beleza...) têm campos próprios: tipo de cobrança, modalidades e horário */
+const CATEGORIAS_SERVICO = ['Academia', 'Beleza', 'Pets', 'Construção', 'Alimentação'];
+const EXEMPLO_TITULO = {
+    'Academia': 'Ex: Plano Mensal Musculação',
+    'Beleza': 'Ex: Corte + escova',
+    'Pets': 'Ex: Banho e tosa',
+    'Construção': 'Ex: Pintura de apartamento',
+    'Alimentação': 'Ex: Marmita executiva'
+};
+const COBRANCAS = ['Por mês', 'Por sessão', 'Por hora', 'Por dia', 'Valor fixo', 'A partir de', 'Sob orçamento'];
+function ehServico(categoria){ return CATEGORIAS_SERVICO.includes(categoria); }
+// "R$ 99 /mês", "A partir de R$ 50", "Sob orçamento"…
+function precoComCobranca(a){
+    const tem = typeof a.preco === 'number';
+    const valor = tem ? 'R$ ' + a.preco.toLocaleString('pt-BR') : '';
+    const c = a.cobranca;
+    if(!c) return valor;
+    if(c === 'Sob orçamento') return tem ? valor + ' (sob orçamento)' : 'Sob orçamento';
+    if(!tem) return '';
+    if(c === 'A partir de') return 'A partir de ' + valor;
+    const suf = { 'Por mês': '/mês', 'Por sessão': '/sessão', 'Por hora': '/hora', 'Por dia': '/dia' }[c];
+    return suf ? valor + ' ' + suf : valor;
+}
+
 /* Situação do anúncio: Disponível / Em análise / Vendido / Alugado — a empresa marca no próprio anúncio */
 function opcoesSituacao(categoria, operacao){
+    if(ehServico(categoria)) return ['Disponível', 'Promoção'];
     const final = (categoria === 'Imóveis' && operacao === 'Aluguel') ? 'Alugado' : 'Vendido';
     return ['Disponível', 'Em análise', final];
 }
@@ -1929,7 +1955,8 @@ function atualizarOpcoesSituacao(){
 function anuncioEncerrado(a){ return a && (a.situacao === 'Vendido' || a.situacao === 'Alugado'); }
 function badgeSituacao(a){
     if(!a || !a.situacao || a.situacao === 'Disponível') return '';
-    return `<span class="anuncio-badge situacao ${anuncioEncerrado(a) ? 'encerrado' : 'analise'}">${esc(a.situacao)}</span>`;
+    const cls = anuncioEncerrado(a) ? 'encerrado' : (a.situacao === 'Promoção' ? 'promo' : 'analise');
+    return `<span class="anuncio-badge situacao ${cls}">${esc(a.situacao)}</span>`;
 }
 
 /* Marcas e modelos de veículos (categoria Automóveis) — ao escolher a marca, o campo
@@ -3330,6 +3357,7 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
 
     const isImovel = categoria === 'Imóveis';
     const isAutomovel = categoria === 'Automóveis';
+    const isServico = ehServico(categoria);
     const podeDestacar = assinaturaStatus === 'ativa';
     const campoEstilo = 'width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid var(--line-strong);font-size:13.5px;';
     const camposImovel = !isImovel ? '' : `
@@ -3386,6 +3414,24 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
         <div style="margin-top:10px;">
             <p id="anMapaStatus" style="font-size:11.5px;color:var(--muted);margin:0 0 6px;">Toque no mapa para marcar o local exato do imóvel</p>
             <div id="anMapaImovel" style="height:190px;border-radius:10px;border:1.5px solid var(--line-strong);overflow:hidden;"></div>
+        </div>
+    `;
+    const camposServico = !isServico ? '' : `
+        <div class="anuncio-form-grid" style="margin-top:10px;">
+            <div>
+                <label style="font-size:12px;color:var(--muted);">Tipo de cobrança</label>
+                <select id="anCobranca" style="${campoEstilo}">
+                    ${COBRANCAS.map(t => `<option ${(a.cobranca || 'Por mês') === t ? 'selected' : ''}>${t}</option>`).join('')}
+                </select>
+            </div>
+            <div>
+                <label style="font-size:12px;color:var(--muted);">${categoria === 'Academia' ? 'Modalidades' : 'O que está incluso'}</label>
+                <input id="anModalidades" type="text" maxlength="150" placeholder="${categoria === 'Academia' ? 'Musculação, Pilates, Spinning' : 'Ex: lavagem, secagem, entrega'}" value="${esc(a.modalidades || '')}" style="${campoEstilo}">
+            </div>
+        </div>
+        <div style="margin-top:10px;">
+            <label style="font-size:12px;color:var(--muted);">Horário de atendimento</label>
+            <input id="anHorario" type="text" maxlength="120" placeholder="Seg a Sex 6h–22h · Sáb 8h–14h" value="${esc(a.horario || '')}" style="${campoEstilo}">
         </div>
     `;
     const camposAutomoveis = !isAutomovel ? '' : `
@@ -3454,8 +3500,8 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
     showModal(`
         <h3>${anuncioId ? 'Editar anúncio' : 'Novo anúncio'}</h3>
         <form onsubmit="return salvarAnuncio(event, '${empresaId}', '${categoria}', ${anuncioId ? `'${anuncioId}'` : 'null'})">
-            <input id="anTitulo" type="text" maxlength="120" placeholder="${isImovel ? 'Ex: Apartamento 2 quartos no Centro' : (isAutomovel ? 'Ex: Subaru Forester 2.5xtt 2011' : 'Título do anúncio')}" required value="${esc(a.titulo)}" style="${campoEstilo}margin-bottom:10px;">
-            <input id="anPreco" type="number" min="0" step="0.01" placeholder="${isImovel ? (a.operacao==='Aluguel' ? 'Aluguel (R$/mês)' : 'Valor do imóvel (R$)') : 'Preço (R$)'}" value="${a.preco ?? ''}" style="${campoEstilo}margin-bottom:10px;">
+            <input id="anTitulo" type="text" maxlength="120" placeholder="${isImovel ? 'Ex: Apartamento 2 quartos no Centro' : (isAutomovel ? 'Ex: Subaru Forester 2.5xtt 2011' : (EXEMPLO_TITULO[categoria] || 'Título do anúncio'))}" required value="${esc(a.titulo)}" style="${campoEstilo}margin-bottom:10px;">
+            <input id="anPreco" type="number" min="0" step="0.01" placeholder="${isImovel ? (a.operacao==='Aluguel' ? 'Aluguel (R$/mês)' : 'Valor do imóvel (R$)') : (isServico ? 'Preço (R$) — deixe vazio se for sob orçamento' : 'Preço (R$)')}" value="${a.preco ?? ''}" style="${campoEstilo}margin-bottom:10px;">
             <textarea id="anDescricao" maxlength="800" placeholder="Detalhes" style="${campoEstilo}min-height:70px;margin-bottom:4px;">${esc(a.descricao)}</textarea>
             <div style="margin-top:10px;">
                 <label style="font-size:12px;color:var(--muted);">Situação do anúncio</label>
@@ -3465,6 +3511,7 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
             </div>
             ${camposImovel}
             ${camposAutomoveis}
+            ${camposServico}
             ${campoDestaque}
             <p style="font-size:12px;color:var(--muted);margin-top:12px;">Fotos (até 6)</p>
             <div class="anuncio-fotos-row" id="anuncioFotos"></div>
@@ -3618,6 +3665,11 @@ async function salvarAnuncio(e, empresaId, categoria, anuncioId){
         dados.endereco = enderecoEl ? enderecoEl.value.trim() : '';
         dados.lat = anLatAtual;
         dados.lng = anLngAtual;
+    }
+    if(ehServico(categoria)){
+        dados.cobranca = document.getElementById('anCobranca').value;
+        dados.modalidades = document.getElementById('anModalidades').value.trim();
+        dados.horario = document.getElementById('anHorario').value.trim();
     }
     if(categoria === 'Automóveis'){
         dados.marca = document.getElementById('anMarca').value;
@@ -3874,7 +3926,7 @@ function renderAnuncioCard(a, anuncioId, empresa, mostrarEmpresa){
     const isImovelCard = a.categoria === 'Imóveis';
     const isAutomovelCard = a.categoria === 'Automóveis';
     const fmtMoeda = v => 'R$ ' + Number(v).toLocaleString('pt-BR');
-    const precoTxt = typeof a.preco === 'number' ? fmtMoeda(a.preco) : '';
+    const precoTxt = ehServico(a.categoria) ? precoComCobranca(a) : (typeof a.preco === 'number' ? fmtMoeda(a.preco) : '');
     const badgeDestaque = a.destaque === true ? `<span class="anuncio-badge destaque">⭐ Destaque</span>` : '';
     const badge = isImovelCard && a.operacao
         ? `<span class="anuncio-badge ${a.operacao === 'Aluguel' ? 'aluguel' : 'venda'}">${esc(a.operacao)}</span>`
@@ -3921,6 +3973,8 @@ function renderAnuncioCard(a, anuncioId, empresa, mostrarEmpresa){
                 ${enderecoTxt ? `<p class="anuncio-meta">${esc(enderecoTxt)}</p>` : ''}
                 ${metaAutomovel ? `<p class="anuncio-meta">${esc(metaAutomovel)}</p>` : ''}
                 ${metaAutomovel2 ? `<p class="anuncio-meta">${esc(metaAutomovel2)}</p>` : ''}
+                ${ehServico(a.categoria) && a.modalidades ? `<p class="anuncio-meta">${esc(a.modalidades)}</p>` : ''}
+                ${ehServico(a.categoria) && a.horario ? `<p class="anuncio-meta">🕒 ${esc(a.horario)}</p>` : ''}
                 ${mostrarEmpresa && empresa ? `<p class="anuncio-meta">por ${esc(empresa.nome)}</p>` : ''}
                 ${linkMapa}
             </div>
@@ -4004,6 +4058,10 @@ function renderDetalheAnuncioModal(a){
         if(a.placa_final !== null && a.placa_final !== undefined && a.placa_final !== '') linhasFicha.push(['Final da placa', a.placa_final]);
         if(a.cidade_veiculo) linhasFicha.push(['Cidade', a.cidade_veiculo]);
     }
+    if(ehServico(a.categoria)){
+        if(a.modalidades) linhasFicha.push([a.categoria === 'Academia' ? 'Modalidades' : 'Incluso', a.modalidades]);
+        if(a.horario) linhasFicha.push(['Horário', a.horario]);
+    }
     const fichaHtml = linhasFicha.length ? `<div class="anuncio-ficha">${linhasFicha.map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`).join('')}</div>` : '';
     const temExtra = a.categoria === 'Imóveis' && (Number(a.condominio) > 0 || Number(a.iptu) > 0);
     const totalPrev = (Number(a.preco) || 0) + (Number(a.condominio) || 0) + (Number(a.iptu) || 0);
@@ -4015,7 +4073,7 @@ function renderDetalheAnuncioModal(a){
             <div><span>IPTU</span><b>${Number(a.iptu) > 0 ? fmt(a.iptu) : 'Isento'}</b></div>
             <div class="total"><span>Valor total previsto</span><b>${fmt(totalPrev)}</b></div>
         </div>`;
-    const precoTxt = typeof a.preco === 'number' ? 'R$ ' + a.preco.toLocaleString('pt-BR') : '';
+    const precoTxt = ehServico(a.categoria) ? precoComCobranca(a) : (typeof a.preco === 'number' ? 'R$ ' + a.preco.toLocaleString('pt-BR') : '');
     const badgeDestaque = a.destaque === true ? `<span class="anuncio-badge destaque">⭐ Destaque</span>` : '';
     const badge = a.categoria === 'Imóveis' && a.operacao
         ? `<span class="anuncio-badge ${a.operacao === 'Aluguel' ? 'aluguel' : 'venda'}">${esc(a.operacao)}</span>`
