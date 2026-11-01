@@ -787,6 +787,12 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 .obra-item:hover{border-color:#12A05C;background:#F3FBF7}
 .obra-item svg{width:18px;height:18px;color:#1D6FD8;flex:none}
 .obra-rapido{margin:12px 0 0;text-align:center;background:#E7F7EE;color:#14803F;font-weight:700;font-size:13px;padding:10px;border-radius:9px}
+.anuncio-extras{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid #EEF0F2}
+.anuncio-extras button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;background:#F4F6F5;border:0;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;color:#3A3D44}
+.anuncio-extras button:hover{background:#E9EEEC}
+.anuncio-extras button.den{color:#8A8E95;font-weight:500}
+.anuncio-extras svg{width:15px;height:15px}
+.field textarea{resize:vertical;min-height:70px}
 .anuncio-detalhe-acoes a{flex:1;min-width:130px;text-align:center;border-radius:11px;padding:11px 16px;font-weight:600;font-size:13.5px;letter-spacing:.01em;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1.5px solid transparent;transition:.18s ease}
 .anuncio-detalhe-acoes svg{width:16px;height:16px;flex-shrink:0}
 .anuncio-btn-whatsapp{background:var(--green);color:#fff;box-shadow:0 8px 18px -10px rgba(18,160,92,.6)}
@@ -2644,6 +2650,86 @@ function fluxoContinuar(anuncioId){
     M.push('');
     M.push(`Anúncio: ${linkAnuncio(a.empresaId, a.id)}`);
     window.open(`https://wa.me/${numero}?text=${encodeURIComponent(M.join('\n'))}`, '_blank', 'noopener');
+}
+
+/* ---------- Compartilhar e denunciar anúncio ----------
+   USAR_LINK_SEO: deixe true só depois de publicar a função Netlify "anuncio" (veja LEIA-ME-SEO.md):
+   (só no domínio zoons.com.br; no GitHub Pages ou local continua o link normal) os links passam a ser /a/{empresa}/{anuncio}, páginas que o Google indexa e que mostram prévia no WhatsApp. */
+const USAR_LINK_SEO = true;
+function linkCompartilhar(empresaId, anuncioId){
+    return (USAR_LINK_SEO && /(^|\.)zoons\.com\.br$/.test(location.hostname)) ? location.origin + '/a/' + empresaId + '/' + anuncioId : linkAnuncio(empresaId, anuncioId);
+}
+function avisoRapido(txt){
+    let t = document.getElementById('zToast');
+    if(!t){
+        t = document.createElement('div'); t.id = 'zToast';
+        t.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#16211C;color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:600;z-index:99999;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);max-width:90vw;text-align:center;transition:opacity .25s;opacity:0;pointer-events:none';
+        document.body.appendChild(t);
+    }
+    t.textContent = txt; t.style.opacity = '1';
+    clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = '0'; }, 2400);
+}
+function compartilharAnuncio(anuncioId){
+    const a = _anunciosData[anuncioId];
+    if(!a) return;
+    const url = linkCompartilhar(a.empresaId, a.id);
+    const texto = `${a.titulo || 'Anúncio'}${a.empresaNome ? ' — ' + a.empresaNome : ''} no Zoons`;
+    if(navigator.share){
+        navigator.share({ title: a.titulo || 'Zoons', text: texto, url }).catch(() => {});
+        return;
+    }
+    const copiar = () => {
+        if(navigator.clipboard && navigator.clipboard.writeText){
+            return navigator.clipboard.writeText(url).then(() => avisoRapido('Link copiado!'));
+        }
+        return Promise.reject();
+    };
+    copiar().catch(() => { window.prompt('Copie o link do anúncio:', url); });
+}
+const MOTIVOS_DENUNCIA = ['Anúncio falso ou enganoso','Golpe / suspeita de fraude','Preço ou informação incorreta','Conteúdo ofensivo ou impróprio','Produto ou serviço proibido','Anúncio duplicado','Outro motivo'];
+function abrirDenuncia(anuncioId){
+    const a = _anunciosData[anuncioId];
+    if(!a) return;
+    showModal(`
+        <button type="button" class="anuncio-voltar" onclick="abrirDetalheAnuncio('${esc(a.id)}')">‹ Voltar ao anúncio</button>
+        <h3 style="margin:6px 0 4px;">Denunciar anúncio</h3>
+        <p style="font-size:13px;color:#6B6F76;margin:0 0 6px;">${esc(a.titulo || '')}${a.empresaNome ? ' · ' + esc(a.empresaNome) : ''}</p>
+        <label class="pet-lbl" for="denMotivo">Qual é o problema?</label>
+        <div class="field"><select id="denMotivo"><option value="">Selecione</option>${MOTIVOS_DENUNCIA.map(m => `<option>${esc(m)}</option>`).join('')}</select></div>
+        <label class="pet-lbl" for="denDetalhe">Conte o que aconteceu (opcional)</label>
+        <div class="field"><textarea id="denDetalhe" rows="3" maxlength="500" placeholder="Quanto mais detalhes, melhor para a nossa análise."></textarea></div>
+        <p id="denErro" style="color:#C0392B;font-size:12.5px;margin:10px 0 0;display:none;"></p>
+        <button type="button" class="anuncio-btn-whatsapp pet-continuar" id="denBtn" onclick="enviarDenuncia('${esc(a.id)}')">Enviar denúncia</button>
+        <p style="font-size:11.5px;color:#8A8E95;margin:10px 0 0;text-align:center;">Nossa equipe analisa cada denúncia. Seu nome não é mostrado à empresa.</p>
+    `);
+}
+function enviarDenuncia(anuncioId){
+    const a = _anunciosData[anuncioId];
+    if(!a) return;
+    const erro = document.getElementById('denErro');
+    const motivo = document.getElementById('denMotivo').value;
+    const detalhe = document.getElementById('denDetalhe').value.trim();
+    if(!motivo){ erro.textContent = 'Escolha o motivo da denúncia.'; erro.style.display = 'block'; return; }
+    try {
+        if(localStorage.getItem('zoons_den_' + a.id)){ erro.textContent = 'Você já denunciou este anúncio. Obrigado!'; erro.style.display = 'block'; return; }
+    } catch(e){}
+    const btn = document.getElementById('denBtn'); btn.disabled = true; btn.textContent = 'Enviando...';
+    db.collection('denuncias').add({
+        empresaId: a.empresaId,
+        anuncioId: a.id,
+        anuncioTitulo: String(a.titulo || '').slice(0, 120),
+        motivo: motivo,
+        detalhe: detalhe,
+        uid: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.uid : null,
+        status: 'nova',
+        criado_em: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        try { localStorage.setItem('zoons_den_' + a.id, '1'); } catch(e){}
+        showSuccess('Denúncia enviada', 'Obrigado por ajudar a manter o Zoons confiável. Nossa equipe vai analisar o anúncio.');
+    }).catch(() => {
+        btn.disabled = false; btn.textContent = 'Enviar denúncia';
+        erro.textContent = 'Não foi possível enviar agora. Tente novamente em instantes.'; erro.style.display = 'block';
+    });
 }
 
 /* Situação do anúncio: Disponível / Em análise / Vendido / Alugado — a empresa marca no próprio anúncio */
@@ -4994,6 +5080,10 @@ function renderDetalheAnuncioModal(a){
             ? `<p style="font-size:13px;color:var(--muted);margin-top:16px;padding:12px 14px;border-radius:10px;background:#F1F4F3;">${a.situacao === 'Esgotado' ? 'Este produto está esgotado no momento.' : 'Este anúncio já foi ' + (a.situacao === 'Alugado' ? 'alugado' : 'vendido') + '.'} Veja os outros anúncios da empresa.</p>`
             : `${(ehLoja(a.categoria) || ehServico(a.categoria)) && (btnWhats || btnEmail) ? `<p class="cel-cta">${ehServico(a.categoria) ? esc(ctaServico(a)) : (lojaServico(a) ? 'Peça seu orçamento agora — resposta rápida!' : 'Gostou? Fale com a loja agora!')}</p>` : ''}<div class="anuncio-detalhe-acoes">${btnWhats}${btnEmail}</div>`}
         ${(!anuncioEncerrado(a) && !btnWhats && !btnEmail) ? `<p style="font-size:12px;color:var(--muted);margin-top:10px;">Esta empresa não informou um contato direto.</p>` : ''}
+        <div class="anuncio-extras">
+            <button type="button" onclick="compartilharAnuncio('${esc(a.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 10.8 7.4-4.4M8.3 13.2l7.4 4.4"/></svg>Compartilhar</button>
+            <button type="button" class="den" onclick="abrirDenuncia('${esc(a.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>Denunciar</button>
+        </div>
     `);
     if(fotos.length){
         const elCarousel = document.querySelector('#modalBody .anuncio-foto-carousel');
