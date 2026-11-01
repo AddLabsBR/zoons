@@ -766,6 +766,14 @@ footer a:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
 .anuncio-voltar{background:none;border:0;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:0;margin-bottom:12px;display:inline-flex;align-items:center;gap:4px;font-family:inherit}
 .anuncio-voltar:hover{color:var(--ink)}
 .anuncio-detalhe-acoes{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.pet-lbl{display:block;font-size:12.5px;font-weight:700;color:#3A3D44;margin:14px 0 6px}
+.pet-ops{display:flex;gap:12px}
+.pet-op{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;border:2px solid #E3E5E8;border-radius:14px;background:#fff;opacity:.85;cursor:pointer;font-weight:700;font-size:13.5px;color:#3A3D44;transition:.15s ease}
+.pet-op svg{width:62px;height:62px}
+.pet-op:hover{border-color:#BFC4CA}
+.pet-op.on{opacity:1;border-color:#12A05C;background:#E3F6EC;box-shadow:0 0 0 3px rgba(18,160,92,.22)}
+.pet-op.on::after{content:'✓';position:absolute;top:6px;right:8px;width:20px;height:20px;border-radius:50%;background:#12A05C;color:#fff;font-size:12px;line-height:20px;text-align:center}
+.pet-continuar{width:100%;margin-top:16px;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:13px 16px;border-radius:11px;font-weight:700;font-size:14.5px}
 .anuncio-detalhe-acoes a{flex:1;min-width:130px;text-align:center;border-radius:11px;padding:11px 16px;font-weight:600;font-size:13.5px;letter-spacing:.01em;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1.5px solid transparent;transition:.18s ease}
 .anuncio-detalhe-acoes svg{width:16px;height:16px;flex-shrink:0}
 .anuncio-btn-whatsapp{background:var(--green);color:#fff;box-shadow:0 8px 18px -10px rgba(18,160,92,.6)}
@@ -2260,6 +2268,164 @@ function servicoColetar(categoria, dados){
         dados.ad_antes = (adAntes && anuncioFotosAtuais.includes(adAntes)) ? adAntes : null;
         dados.ad_depois = (adDepois && anuncioFotosAtuais.includes(adDepois)) ? adDepois : null;
     }
+}
+
+/* Mensagem que chega no WhatsApp/e-mail da empresa.
+   Padrão: "Olá! Tenho interesse neste anúncio: link". Em Alimentação vai o pedido completo
+   (o que o cliente viu no anúncio) + campos pra ele preencher, assim a empresa já sabe o que foi
+   pedido e o cliente já manda nome, endereço e pagamento na mesma mensagem. */
+function mensagemContato(a, link){
+    if(a.categoria === 'Beleza' && a.agendamento_whatsapp){
+        const B = [];
+        B.push(`Olá${a.empresaNome ? ', *' + a.empresaNome + '*' : ''}! Quero agendar um horário:`);
+        B.push('');
+        B.push(`*${a.titulo || 'Serviço'}*`);
+        if(a.item) B.push(`Tipo: ${a.item}`);
+        if(a.duracao) B.push(`Duração: ${a.duracao}`);
+        const pr = precoComCobranca(a);
+        if(pr) B.push(`Valor: ${pr}`);
+        if(a.horario) B.push(`Atendimento: ${a.horario}`);
+        B.push('');
+        B.push(`Anúncio: ${link}`);
+        B.push('');
+        B.push('Para agendar, preencha:');
+        B.push('Nome:');
+        B.push('Dia desejado:');
+        B.push('Horário desejado:');
+        B.push('Profissional de preferência (opcional):');
+        B.push('Observações:');
+        return B.join('\n');
+    }
+    if(a.categoria === 'Academia'){
+        const C = [];
+        const exp = !!a.aula_experimental;
+        C.push(`Olá${a.empresaNome ? ', *' + a.empresaNome + '*' : ''}! ${exp ? 'Quero agendar minha aula experimental grátis:' : 'Quero conhecer a academia e este plano:'}`);
+        C.push('');
+        C.push(`*${a.titulo || 'Plano'}*`);
+        if(a.item) C.push(`Modalidade: ${a.item}`);
+        const pc = precoComCobranca(a);
+        if(pc) C.push(`Valor: ${pc}`);
+        if(a.horario) C.push(`Horário: ${a.horario}`);
+        C.push('');
+        C.push(`Anúncio: ${link}`);
+        C.push('');
+        C.push(exp ? 'Para agendar, preencha:' : 'Para falarmos, preencha:');
+        C.push('Nome:');
+        if(exp){
+            C.push('Dia desejado:');
+            C.push('Horário desejado:');
+        } else {
+            C.push('Objetivo (emagrecer, ganhar massa, saúde...):');
+            C.push('Melhor horário para treinar:');
+        }
+        C.push('Já treina ou é a primeira vez?');
+        C.push('Observações:');
+        return C.join('\n');
+    }
+    if(a.categoria !== 'Alimentação') return `Olá! Tenho interesse neste anúncio: ${link}`;
+    const L = [];
+    L.push(`Olá${a.empresaNome ? ', *' + a.empresaNome + '*' : ''}! Quero fazer um pedido:`);
+    L.push('');
+    L.push(`*${a.titulo || 'Pedido'}*`);
+    if(a.item) L.push(`Tipo: ${a.item}`);
+    if(a.modalidades) L.push(`Acompanha: ${a.modalidades}`);
+    const preco = precoComCobranca(a);
+    if(preco) L.push(`Valor: ${preco}`);
+    if(a.prato_do_dia) L.push('Prato do dia');
+    if(a.entrega) L.push(`Entrega: ${a.entrega}`);
+    if(typeof a.pedido_minimo === 'number' && a.pedido_minimo > 0) L.push(`Pedido mínimo: R$ ${a.pedido_minimo.toLocaleString('pt-BR')}`);
+    if(a.horario) L.push(`Horário de entrega: ${a.horario}`);
+    L.push('');
+    L.push(`Anúncio: ${link}`);
+    L.push('');
+    L.push('Para finalizar, preencha:');
+    L.push('Nome:');
+    L.push('Quantidade:');
+    if(a.entrega === 'Só retirada'){
+        L.push('Horário para retirar:');
+    } else {
+        if(a.entrega !== 'Delivery') L.push('Entrega ou retirada:');
+        L.push('Endereço de entrega (rua, número, bairro):');
+        L.push('Ponto de referência:');
+    }
+    L.push('Forma de pagamento:');
+    L.push('Observações:');
+    return L.join('\n');
+}
+
+/* Pets: formulário antes do WhatsApp ("Agilize seu atendimento") — nome, cão/gato e o que o tutor precisa */
+const SERVICOS_VET = [
+    ['Consultas', ['Consulta veterinária clínica geral','Consulta de retorno','Consulta com especialista','Atendimento a domicílio (home care)','Telemedicina veterinária']],
+    ['Urgência', ['Pronto atendimento / Urgência','Plantão 24 horas','Internação','Atendimento de animais silvestres e exóticos']],
+    ['Prevenção', ['Vacinação (V8, V10, antirrábica, gripe, leishmaniose)','Vermifugação','Antipulgas e carrapatos','Check-up geral','Microchipagem','Emissão de atestado / documentos para viagem']],
+    ['Exames', ['Exames laboratoriais (sangue, urina, fezes)','Ultrassonografia','Raio-X (radiografia)','Eletrocardiograma / Ecocardiograma','Testes rápidos (cinomose, FIV/FeLV, parvovirose...)']],
+    ['Cirurgias e procedimentos', ['Castração','Cirurgia geral','Cirurgia ortopédica','Cirurgia de tecidos moles','Odontologia / Limpeza de tártaro','Curativos e pequenos procedimentos']],
+    ['Especialidades', ['Dermatologia','Cardiologia','Oftalmologia','Ortopedia e fisioterapia','Oncologia','Neurologia','Endocrinologia','Nutrição / Dieta especial','Comportamento animal','Acupuntura / Medicina integrativa','Gestação, parto e neonatal']],
+    ['Estética e bem-estar', ['Banho','Tosa (higiênica, bebê, na máquina, na tesoura)','Banho e tosa','Corte de unhas','Limpeza de ouvido','Hidratação de pelagem']],
+    ['Outros serviços', ['Hospedagem / Hotel pet','Creche / Day care','Adestramento','Pet shop (ração e acessórios)','Farmácia veterinária','Transporte pet (táxi dog)','Outro']]
+];
+let _petSel = 'cao';
+function abrirFormPet(anuncioId){
+    const a = _anunciosData[anuncioId];
+    if(!a) return;
+    _petSel = '';
+    let nomeSalvo = '';
+    try { nomeSalvo = localStorage.getItem('zoons_pet_nome') || ''; } catch(e){}
+    const item = (a.item || '').toLowerCase();
+    const pre = item.indexOf('veterin') >= 0 ? 'Consulta veterinária clínica geral'
+        : item.indexOf('banho') >= 0 ? 'Banho e tosa'
+        : item.indexOf('hosped') >= 0 ? 'Hospedagem / Hotel pet'
+        : item.indexOf('adest') >= 0 ? 'Adestramento'
+        : item.indexOf('pet shop') >= 0 ? 'Pet shop (ração e acessórios)' : '';
+    const cao = `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M13 22c-5 1-8 8-7 16 .5 4 3 6 6 5 3-1 4-5 4-9z" fill="#B8884F"/><path d="M51 22c5 1 8 8 7 16-.5 4-3 6-6 5-3-1-4-5-4-9z" fill="#B8884F"/><ellipse cx="32" cy="35" rx="19" ry="21" fill="#E9C48F"/><ellipse cx="32" cy="43" rx="10" ry="8" fill="#FBEBD0"/><circle cx="24" cy="31" r="2.6" fill="#2B2B2B"/><circle cx="40" cy="31" r="2.6" fill="#2B2B2B"/><ellipse cx="32" cy="39" rx="4.2" ry="3" fill="#2B2B2B"/><path d="M32 42v3m-4 0c1.5 2 6.5 2 8 0" stroke="#2B2B2B" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>`;
+    const gato = `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 10l12 9-9 14z" fill="#9AA3AD"/><path d="M54 10l-12 9 9 14z" fill="#9AA3AD"/><path d="M13 14l7 6-5 8z" fill="#F4B8C4"/><path d="M51 14l-7 6 5 8z" fill="#F4B8C4"/><ellipse cx="32" cy="37" rx="22" ry="19" fill="#B7BEC7"/><ellipse cx="24" cy="33" rx="3" ry="4" fill="#2B2B2B"/><ellipse cx="40" cy="33" rx="3" ry="4" fill="#2B2B2B"/><circle cx="25" cy="31.5" r="1" fill="#fff"/><circle cx="41" cy="31.5" r="1" fill="#fff"/><path d="M29.5 40h5l-2.5 3z" fill="#E88CA0"/><path d="M32 43c0 2-3 3-5 2m5-2c0 2 3 3 5 2" stroke="#2B2B2B" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M8 38l11 2M8 44l11-2M56 38l-11 2M56 44l-11-2" stroke="#6B727B" stroke-width="1.2" stroke-linecap="round"/></svg>`;
+    const opts = SERVICOS_VET.map(([g, l]) => `<optgroup label="${esc(g)}">${l.map(x => `<option value="${esc(x)}"${x === pre ? ' selected' : ''}>${esc(x)}</option>`).join('')}</optgroup>`).join('');
+    showModal(`
+        <button type="button" class="anuncio-voltar" onclick="abrirDetalheAnuncio('${esc(a.id)}')">‹ Voltar ao anúncio</button>
+        <h3 style="margin:6px 0 2px;">Agilize seu atendimento</h3>
+        <p style="font-size:13px;color:#6B6F76;margin:0 0 14px;">Conte um pouco sobre seu pet e continue a conversa no WhatsApp.</p>
+        <label class="pet-lbl" for="petNome">Seu nome</label>
+        <div class="field"><input id="petNome" type="text" maxlength="60" placeholder="Digite seu nome" value="${esc(nomeSalvo)}" oninput="petLimparErro()"></div>
+        <label class="pet-lbl">Seu pet é</label>
+        <div class="pet-ops" id="petOps">
+            <button type="button" class="pet-op" data-v="cao" onclick="petEscolher('cao')">${cao}<span>Cachorro</span></button>
+            <button type="button" class="pet-op" data-v="gato" onclick="petEscolher('gato')">${gato}<span>Gato</span></button>
+        </div>
+        <label class="pet-lbl" for="petServ">Você precisa de</label>
+        <div class="field"><select id="petServ" onchange="petLimparErro()"><option value="">Selecione o serviço</option>${opts}</select></div>
+        <label class="pet-lbl" for="petObs">Algo mais? (opcional)</label>
+        <div class="field"><input id="petObs" type="text" maxlength="200" placeholder="Nome do pet, idade, sintomas..."></div>
+        <p id="petErro" style="color:#C0392B;font-size:12.5px;margin:10px 0 0;display:none;"></p>
+        <button type="button" class="anuncio-btn-whatsapp pet-continuar" onclick="petContinuar('${esc(a.id)}')">Continuar no WhatsApp</button>
+    `);
+}
+function petLimparErro(){ const e = document.getElementById('petErro'); if(e) e.style.display = 'none'; }
+function petEscolher(v){
+    _petSel = v; petLimparErro();
+    document.querySelectorAll('#petOps .pet-op').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+}
+function petContinuar(anuncioId){
+    const a = _anunciosData[anuncioId];
+    if(!a) return;
+    const nome = document.getElementById('petNome').value.trim();
+    const serv = document.getElementById('petServ').value;
+    const obs = document.getElementById('petObs').value.trim();
+    const erro = document.getElementById('petErro');
+    const falta = !nome ? 'Informe seu nome.' : !_petSel ? 'Escolha se seu pet é cachorro ou gato.' : !serv ? 'Escolha o serviço de que você precisa.' : '';
+    if(falta){ erro.textContent = falta; erro.style.display = 'block'; return; }
+    try { localStorage.setItem('zoons_pet_nome', nome); } catch(e){}
+    const numero = numeroWhatsappCompleto(a.empresaWhatsapp);
+    if(!numero){ erro.textContent = 'Esta empresa não informou WhatsApp.'; erro.style.display = 'block'; return; }
+    const L = [];
+    L.push(`Olá${a.empresaNome ? ', *' + a.empresaNome + '*' : ''}! Vim pelo Zoons.`);
+    L.push('');
+    L.push(`Nome: ${nome}`);
+    L.push(`Meu pet é: ${_petSel === 'cao' ? 'Cachorro 🐶' : 'Gato 🐱'}`);
+    L.push(`Preciso de: ${serv}`);
+    if(obs) L.push(`Observações: ${obs}`);
+    L.push('');
+    L.push(`Anúncio: ${linkAnuncio(a.empresaId, a.id)}`);
+    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(L.join('\n'))}`, '_blank', 'noopener');
 }
 
 /* Situação do anúncio: Disponível / Em análise / Vendido / Alugado — a empresa marca no próprio anúncio */
@@ -4576,15 +4742,16 @@ function renderDetalheAnuncioModal(a){
         : '';
 
     const link = linkAnuncio(a.empresaId, a.id);
-    const msg = `Olá! Tenho interesse neste anúncio: ${link}`;
+    const msg = mensagemContato(a, link);
     const numero = numeroWhatsappCompleto(a.empresaWhatsapp);
     const icoWhats = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.9a8.4 8.4 0 0 1-12.2 7.5L4 20.5l1.1-4.1a8.4 8.4 0 1 1 15.4-4.5Z"/><path d="M8.7 8.6c.2-.5.5-.5.8-.5h.5c.2 0 .4 0 .6.4.2.4.6 1.4.7 1.5.1.1.1.3 0 .5-.1.2-.2.3-.4.5-.2.2-.3.3-.1.6.2.3.8 1.3 1.8 2.1 1.2 1 2 1.3 2.3 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1 .2-.2.3-.2.6-.1.2.1 1.5.7 1.8.9.3.1.4.2.5.3.1.2.1.9-.2 1.6-.3.7-1.6 1.4-2.2 1.5-.6.1-1.1.2-3.6-.8-3-1.2-4.9-4.2-5-4.4-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4Z"/></svg>`;
     const icoEmail = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 7.4 5.6a1 1 0 0 0 1.2 0L20 7"/></svg>`;
-    const btnWhats = numero
-        ? `<a class="anuncio-btn-whatsapp" href="https://wa.me/${numero}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${icoWhats}WhatsApp</a>`
-        : '';
+    const btnWhats = !numero ? ''
+        : a.categoria === 'Pets'
+            ? `<a class="anuncio-btn-whatsapp" href="#" onclick="abrirFormPet('${esc(a.id)}');return false;">${icoWhats}WhatsApp</a>`
+            : `<a class="anuncio-btn-whatsapp" href="https://wa.me/${numero}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${icoWhats}WhatsApp</a>`;
     const btnEmail = a.empresaEmail
-        ? `<a class="anuncio-btn-email" href="mailto:${esc(a.empresaEmail)}?subject=${encodeURIComponent('Interesse no anúncio: ' + (a.titulo || ''))}&body=${encodeURIComponent(msg)}">${icoEmail}E-mail</a>`
+        ? `<a class="anuncio-btn-email" href="mailto:${esc(a.empresaEmail)}?subject=${encodeURIComponent((a.categoria === 'Alimentação' ? 'Pedido: ' : 'Interesse no anúncio: ') + (a.titulo || ''))}&body=${encodeURIComponent(msg)}">${icoEmail}E-mail</a>`
         : '';
 
     showModal(`
