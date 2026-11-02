@@ -2852,7 +2852,7 @@ function abrirDenuncia(anuncioId){
         <div class="field"><textarea id="denDetalhe" rows="3" maxlength="500" placeholder="Quanto mais detalhes, melhor para a nossa análise."></textarea></div>
         <p id="denErro" style="color:#C0392B;font-size:12.5px;margin:10px 0 0;display:none;"></p>
         <button type="button" class="anuncio-btn-whatsapp pet-continuar" id="denBtn" onclick="enviarDenuncia('${esc(a.id)}')">Enviar denúncia</button>
-        <p style="font-size:11.5px;color:#8A8E95;margin:10px 0 0;text-align:center;">Nossa equipe analisa cada denúncia. Seu nome não é mostrado à empresa.</p>
+        <p style="font-size:11.5px;color:#8A8E95;margin:10px 0 0;text-align:center;">É preciso estar com a conta ativa. Nossa equipe analisa cada denúncia e seu nome não é mostrado à empresa.</p>
     `);
 }
 function enviarDenuncia(anuncioId){
@@ -2861,6 +2861,7 @@ function enviarDenuncia(anuncioId){
     const erro = document.getElementById('denErro');
     const motivo = document.getElementById('denMotivo').value;
     const detalhe = document.getElementById('denDetalhe').value.trim();
+    if(!currentUser){ erro.textContent = 'Entre na sua conta (ou crie uma, é grátis) para enviar a denúncia. Isso evita denúncias falsas em massa.'; erro.style.display = 'block'; return; }
     if(!motivo){ erro.textContent = 'Escolha o motivo da denúncia.'; erro.style.display = 'block'; return; }
     try {
         if(localStorage.getItem('zoons_den_' + a.id)){ erro.textContent = 'Você já denunciou este anúncio. Obrigado!'; erro.style.display = 'block'; return; }
@@ -2872,7 +2873,7 @@ function enviarDenuncia(anuncioId){
         anuncioTitulo: String(a.titulo || '').slice(0, 120),
         motivo: motivo,
         detalhe: detalhe,
-        uid: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.uid : null,
+        uid: currentUser.uid,
         status: 'nova',
         criado_em: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
@@ -4253,7 +4254,7 @@ async function renderListaMeusAnuncios(empresaId, empresa){
     const status = empresa.assinatura_status || '';
     const btnNovo = noLimite
         ? `<p style="font-size:12.5px;color:var(--muted);margin:4px 0 0;">Você usou ${usados} de ${limite} anúncios. <a href="#" onclick="abrirPlano();return false;" style="color:var(--green-d);font-weight:700;">Assine o Plano Destaque</a> para publicar mais.</p>`
-        : `<button class="modal-submit" onclick="abrirFormAnuncio('${empresaId}', '${empresa.categoria}', null, '${status}')">+ Novo anúncio</button>`;
+        : `<button class="modal-submit" onclick="abrirFormAnuncio('${empresaId}', '${catSegura(empresa.categoria)}', null, '${status}')">+ Novo anúncio</button>`;
     showModal(`
         <h3>Meus anúncios</h3>
         <p class="modal-sub">Fotos, preço e detalhes ${isImovel ? 'dos seus imóveis' : 'do que você oferece'}.</p>
@@ -4277,7 +4278,7 @@ async function renderListaMeusAnuncios(empresaId, empresa){
         return;
     }
     const docsOrdenados = list.docs.slice().sort((x, y) => (y.data().destaque === true ? 1 : 0) - (x.data().destaque === true ? 1 : 0));
-    el.innerHTML = docsOrdenados.map(doc => {
+    el.innerHTML = docsOrdenados.filter(doc => idSeguro(doc.id)).map(doc => {
         const a = doc.data();
         const foto = (a.fotos && a.fotos[0]) ? `<img src="${esc(a.fotos[0])}">` : '<div class="ph"></div>';
         const precoTxt = typeof a.preco === 'number' ? 'R$ ' + a.preco.toLocaleString('pt-BR', {minimumFractionDigits:2}) : 'Sem preço';
@@ -4286,7 +4287,7 @@ async function renderListaMeusAnuncios(empresaId, empresa){
                 ${foto}
                 <div class="info"><strong>${a.destaque === true ? '⭐ ' : ''}${esc(a.titulo)}</strong><span style="font-size:11.5px;color:var(--muted);">${esc(precoTxt)}${a.situacao && a.situacao !== 'Disponível' ? ' · ' + esc(a.situacao) : ''}${a.ativo === false ? ' · oculto' : ''}</span></div>
                 <div class="acoes">
-                    <button type="button" onclick="abrirFormAnuncio('${empresaId}', '${empresa.categoria}', '${doc.id}', '${status}')">Editar</button>
+                    <button type="button" onclick="abrirFormAnuncio('${empresaId}', '${catSegura(empresa.categoria)}', '${doc.id}', '${status}')">Editar</button>
                     <button type="button" class="del" onclick="excluirAnuncio('${empresaId}', '${doc.id}')">Excluir</button>
                 </div>
             </div>
@@ -4295,6 +4296,8 @@ async function renderListaMeusAnuncios(empresaId, empresa){
 }
 
 async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatus){
+    categoria = catSegura(categoria);
+    if(!categoria || !idSeguro(empresaId) || (anuncioId && !idSeguro(anuncioId))) return;
     let a = {
         titulo:'', preco:'', descricao:'', fotos:[], operacao:'Venda', tipo_imovel:'Casa',
         area_m2:'', quartos:'', banheiros:'', vaga_garagem:'', condominio:'', iptu:'', destaque:false,
@@ -4538,7 +4541,7 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
 
     showModal(`
         <h3>${anuncioId ? 'Editar anúncio' : 'Novo anúncio'}</h3>
-        <form onsubmit="return salvarAnuncio(event, '${empresaId}', '${categoria}', ${anuncioId ? `'${anuncioId}'` : 'null'})">
+        <form onsubmit="return salvarAnuncio(event, '${empresaId}', '${catSegura(categoria)}', ${anuncioId ? `'${anuncioId}'` : 'null'})">
             <input id="anTitulo" type="text" maxlength="120" placeholder="${isImovel ? 'Ex: Apartamento 2 quartos no Centro' : (isAutomovel ? 'Ex: Subaru Forester 2.5xtt 2011' : (isCel ? 'Ex: Capinha antichoque iPhone 13  ·  Troca de tela Samsung' : (isInfo ? 'Ex: Notebook Dell i5 8GB SSD 256GB  ·  Formatação com backup' : (EXEMPLO_TITULO[categoria] || 'Título do anúncio'))))}" required value="${esc(a.titulo)}" style="${campoEstilo}margin-bottom:10px;">
             <input id="anPreco" oninput="atualizarDescontoPreview()" type="number" min="0" step="0.01" placeholder="${isImovel ? (a.operacao==='Aluguel' ? 'Aluguel (R$/mês)' : 'Valor do imóvel (R$)') : (isServico ? 'Preço (R$) · vazio = sob orçamento' : ((isCel || isInfo) ? 'Preço atual (R$) · vazio = sob orçamento' : 'Preço (R$)'))}" value="${a.preco ?? ''}" style="${campoEstilo}margin-bottom:10px;">
             <textarea id="anDescricao" maxlength="800" placeholder="Detalhes" style="${campoEstilo}min-height:70px;margin-bottom:4px;">${esc(a.descricao)}</textarea>
@@ -4999,7 +5002,14 @@ function atualizarAbaAnuncios(){
 // o modal de detalhe (com botões de contato) sem precisar buscar tudo de novo no Firestore.
 let _anunciosData = {};
 
+/* Segurança: IDs entram em atributos onclick, então só aceitamos letras, números, _ e -.
+   (O Firestore gera IDs assim; qualquer outro é ignorado e nunca chega ao HTML.) */
+function idSeguro(id){ return typeof id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(id); }
+const CATEGORIAS_LISTA = ['Celulares','Informática','Automóveis','Imóveis','Beleza','Alimentação','Pets','Construção','Academia','Eletricista','Encanador','Limpeza'];
+function catSegura(c){ return CATEGORIAS_LISTA.indexOf(c) >= 0 ? c : ''; }
+
 function renderAnuncioCard(a, anuncioId, empresa, mostrarEmpresa){
+    if(!idSeguro(anuncioId) || !idSeguro(empresa.id)) return '';
     _anunciosData[anuncioId] = {
         ...a,
         id: anuncioId,
@@ -5101,6 +5111,7 @@ function abrirDetalheAnuncio(anuncioId){
 // manda o link pro vendedor no WhatsApp) — busca os dados direto no Firestore, sem
 // depender da lista principal já ter carregado.
 async function abrirDetalheAnuncioPorLink(empresaId, anuncioId){
+    if(!idSeguro(empresaId) || !idSeguro(anuncioId)) return;
     try{
         const [anDoc, empDoc] = await Promise.all([
             db.collection('empresas').doc(empresaId).collection('anuncios').doc(anuncioId).get(),
