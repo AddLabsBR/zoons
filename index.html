@@ -2022,7 +2022,10 @@ function precoCelHTML(a, grande){
 function chipsCelular(a){
     if(!ehLoja(a.categoria)) return [];
     const c = [];
-    if(a.item) c.push(a.item);
+    if(ehCelulares(a.categoria) && lojaServico(a) && Array.isArray(a.servicos) && a.servicos.length){
+        a.servicos.slice(0, 3).forEach(x => c.push(x));
+        if(a.servicos.length > 3) c.push('+' + (a.servicos.length - 3) + (a.servicos.length - 3 === 1 ? ' serviço' : ' serviços'));
+    } else if(a.item) c.push(a.item);
     if(ehInformatica(a.categoria) && !lojaServico(a) && a.condicao) c.push(a.condicao);
     if(lojaServico(a)){
         if(a.orcamento_gratis) c.push('Orçamento grátis');
@@ -2040,6 +2043,26 @@ function chipsHTML(a, max){
     return c.length ? `<div class="anuncio-chips">${c.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : '';
 }
 // Seletor de "pills" do formulário
+// Serviços que a assistência de celular pode marcar (vários): mesma lista que o cliente vê no formulário do WhatsApp
+function servicosCelGrupos(){ return (FLUXOS['Celulares'] && FLUXOS['Celulares'].grupos) || []; }
+function servicosCelLista(){ return servicosCelGrupos().flatMap(g => g[1]); }
+function servicosCelAtuais(a){
+    if(a.tipo_celular !== 'Assistência') return [];
+    if(Array.isArray(a.servicos) && a.servicos.length) return a.servicos;
+    return a.item ? [a.item] : [];
+}
+function pillsServicosCel(atuais){
+    return `<div id="anServCel">` + servicosCelGrupos().map(([g, l]) =>
+        `<p class="cel-sub" style="font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8A8E95;margin:10px 0 5px;">${esc(g)}</p><div class="pills">` +
+        l.map(o => `<button type="button" class="pill${atuais.indexOf(o) >= 0 ? ' on' : ''}" data-v="${esc(o)}" aria-pressed="${atuais.indexOf(o) >= 0}" onclick="alternarPillMulti(this)">${esc(o)}</button>`).join('') + `</div>`).join('') + `</div>`;
+}
+function alternarPillMulti(btn){
+    btn.classList.toggle('on');
+    btn.setAttribute('aria-pressed', btn.classList.contains('on') ? 'true' : 'false');
+}
+function servicosCelMarcados(){
+    return Array.from(document.querySelectorAll('#anServCel .pill.on')).map(b => b.dataset.v);
+}
 function escolherPill(btn, inputId){
     const box = btn.parentElement;
     box.querySelectorAll('.pill').forEach(b => b.classList.remove('on'));
@@ -2499,6 +2522,7 @@ function petContinuar(anuncioId){
 const QUANDO_URG = ['Urgente (hoje)', 'Nesta semana', 'Neste mês', 'Só estou pesquisando preço'];
 const FLUXOS = {
     'Celulares': {
+        unico: true,
         quando: a => a.tipo_celular === 'Assistência' && !!a.atendimento && a.atendimento !== 'Na loja',
         saudacao: 'preciso de assistência técnica para o meu celular', ok: 'Orçamento grátis e sem compromisso', okPadrao: 'Atendimento a domicílio pelo WhatsApp',
         titulo2: 'Chame o técnico', rotuloServ: 'Problema',
@@ -2607,6 +2631,7 @@ function abrirFormFluxo(anuncioId){
     const F = a && FLUXOS[a.categoria];
     if(!F || !temFluxo(a)) return;
     _fluxoServ = ''; _fluxoCat = a.categoria; _fluxoAn = a;
+    if(F.unico){ abrirFormFluxoUnico(a, F); return; }
     const campos = camposFluxo(F, a).map(c => `<label class="pet-lbl" for="fx_${c.k}">${esc(c.lab)}</label><div class="field">` +
         (c.sel ? `<select id="fx_${c.k}">${c.sel.map(o => `<option>${esc(o)}</option>`).join('')}</select>`
                : `<input id="fx_${c.k}" type="text" maxlength="250" placeholder="${esc(c.ph || '')}" oninput="fluxoLimparErro()">`) + `</div>`).join('');
@@ -2629,6 +2654,43 @@ function abrirFormFluxo(anuncioId){
         </div>
     `);
     fluxoFiltrar();
+}
+/* Versão em uma janela só (nome, aparelho, tipo de problema, endereço) — usada na assistência de celular */
+function abrirFormFluxoUnico(a, F){
+    let nomeSalvo = '';
+    try { nomeSalvo = localStorage.getItem('zoons_pet_nome') || ''; } catch(e){}
+    const marcados = servicosCelAtuais(a);
+    let grupos = F.grupos.map(([g, l]) => [g, marcados.length ? l.filter(x => marcados.indexOf(x) >= 0) : l]).filter(([g, l]) => l.length);
+    if(!grupos.length) grupos = F.grupos; // anúncio antigo, com um serviço que não está na lista nova
+    const unico = marcados.length === 1 ? marcados[0] : '';
+    const opts = grupos.map(([g, l]) => `<optgroup label="${esc(g)}">${l.map(x => `<option value="${esc(x)}"${x === unico ? ' selected' : ''}>${esc(x)}</option>`).join('')}</optgroup>`).join('');
+    const outros = camposFluxo(F, a).filter(c => c.k !== 'aparelho').map(c => `<label class="pet-lbl" for="fx_${c.k}">${esc(c.lab)}</label><div class="field">` +
+        (c.sel ? `<select id="fx_${c.k}">${c.sel.map(o => `<option>${esc(o)}</option>`).join('')}</select>`
+               : `<input id="fx_${c.k}" type="text" maxlength="250" placeholder="${esc(c.ph || '')}" oninput="fluxoLimparErro()">`) + `</div>`).join('');
+    showModal(`
+        <button type="button" class="anuncio-voltar" onclick="abrirDetalheAnuncio('${esc(a.id)}')">‹ Voltar ao anúncio</button>
+        <h3 style="margin:6px 0 2px;">Agilize seu atendimento</h3>
+        <p style="font-size:13px;color:#6B6F76;margin:0 0 14px;">Conte o que seu celular precisa e continue a conversa no WhatsApp.</p>
+        <label class="pet-lbl" for="fx_nome">Seu nome</label>
+        <div class="field"><input id="fx_nome" type="text" maxlength="60" placeholder="Digite seu nome" value="${esc(nomeSalvo)}" oninput="fluxoLimparErro()"></div>
+        <label class="pet-lbl" for="fx_aparelho">Modelo do celular</label>
+        <div class="field"><input id="fx_aparelho" type="text" maxlength="80" placeholder="Ex: Samsung Galaxy A54" oninput="fluxoLimparErro()"></div>
+        <label class="pet-lbl" for="fx_problema">Tipo de problema</label>
+        <div class="field"><select id="fx_problema" onchange="fluxoProblemaMudou()"><option value="">Selecione o problema</option>${opts}</select></div>
+        <p id="obraTipo" style="font-size:12.5px;color:#8A8E95;margin:6px 0 0;"></p>
+        ${outros}
+        <p id="obraErro" style="color:#C0392B;font-size:12.5px;margin:10px 0 0;display:none;"></p>
+        <button type="button" class="anuncio-btn-whatsapp pet-continuar" onclick="fluxoContinuar('${esc(a.id)}')">Continuar no WhatsApp</button>
+    `);
+    fluxoProblemaMudou();
+}
+function fluxoProblemaMudou(){
+    const F = FLUXOS[_fluxoCat]; const el = document.getElementById('fx_problema');
+    if(!F || !el) return;
+    _fluxoServ = el.value;
+    fluxoLimparErro();
+    const t = F.tipo && el.value ? F.tipo(el.value) : '';
+    const o = document.getElementById('obraTipo'); if(o) o.textContent = t ? 'Tipo: ' + t : '';
 }
 function fluxoNorm(t){ return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
 function fluxoFiltrar(){
@@ -2664,6 +2726,10 @@ function fluxoContinuar(anuncioId){
     const erro = document.getElementById('obraErro');
     const nome = document.getElementById('fx_nome').value.trim();
     if(!nome){ erro.textContent = 'Informe seu nome.'; erro.style.display = 'block'; return; }
+    if(F.unico){
+        _fluxoServ = document.getElementById('fx_problema').value;
+        if(!_fluxoServ){ erro.textContent = 'Escolha o tipo de problema.'; erro.style.display = 'block'; return; }
+    }
     const L = [];
     for(const c of camposFluxo(F, a)){
         const v = document.getElementById('fx_' + c.k).value.trim();
@@ -4281,9 +4347,8 @@ async function abrirFormAnuncio(empresaId, categoria, anuncioId, assinaturaStatu
         </div>
 
         <div id="celAssistencia" style="${tipoCel === 'Assistência' ? '' : 'display:none;'}">
-            <label class="cel-label">Qual serviço?</label>
-            <input type="hidden" id="anItemS" value="${tipoCel === 'Assistência' ? esc(a.item || '') : ''}">
-            ${pills(SERVICOS_CEL, 'anItemS', tipoCel === 'Assistência' ? a.item : '')}
+            <label class="cel-label">Quais serviços você presta? <span style="font-weight:500;color:var(--muted);">(marque quantos quiser)</span></label>
+            ${pillsServicosCel(servicosCelAtuais(a))}
             <label class="cel-label">Marcas e modelos que você atende</label>
             <input id="anCompativelS" type="text" maxlength="120" placeholder="Ex: iPhone, Samsung, Motorola, Xiaomi" value="${tipoCel === 'Assistência' ? esc(a.compativel || '') : ''}" style="${campoEstilo}">
             <div class="anuncio-form-grid" style="margin-top:10px;">
@@ -4596,12 +4661,15 @@ async function salvarAnuncio(e, empresaId, categoria, anuncioId){
         dados.garantia = document.getElementById('anGarantia').value;
         if(tipo === 'Acessório'){
             dados.item = document.getElementById('anItemA').value;
+            dados.servicos = [];
             dados.compativel = document.getElementById('anCompativelA').value.trim();
             dados.preco_original = Number(document.getElementById('anPrecoOriginal').value) || null;
             dados.pronta_entrega = document.getElementById('anProntaEntrega').checked;
             dados.prazo = null; dados.atendimento = null; dados.orcamento_gratis = false;
         } else {
-            dados.item = document.getElementById('anItemS').value;
+            const marcados = servicosCelMarcados();
+            dados.servicos = marcados;
+            dados.item = marcados[0] || '';
             dados.compativel = document.getElementById('anCompativelS').value.trim();
             dados.prazo = document.getElementById('anPrazo').value;
             dados.atendimento = document.getElementById('anAtendimento').value;
@@ -4746,7 +4814,7 @@ function filtrosAnunciosHTML(pref, minimo){
     const lista = _anCtx[pref].lista;
     if(lista.length < minimo) return '';
     const cat = lista[0].a.categoria;
-    const unicos = campo => [...new Set(lista.map(x => x.a[campo]).filter(Boolean))].sort();
+    const unicos = campo => [...new Set(lista.flatMap(x => (campo === 'item' && Array.isArray(x.a.servicos) && x.a.servicos.length) ? x.a.servicos : [x.a[campo]]).filter(Boolean))].sort();
     const sel = (id, rotulo, opcoes) => `<select id="fan${pref}${id}" onchange="aplicarFiltrosAnuncios('${pref}')" aria-label="${rotulo}"><option value="">${rotulo}</option>${opcoes.map(o => `<option>${esc(o)}</option>`).join('')}</select>`;
     let extra = '';
     if(cat === 'Imóveis'){
@@ -4793,7 +4861,7 @@ function aplicarFiltrosAnuncios(pref){
         if(v('Plano') && a.cobranca !== v('Plano')) return false;
         if(v('Duracao') && a.duracao !== v('Duracao')) return false;
         if(v('Condicao') && a.condicao !== v('Condicao')) return false;
-        if(v('Item') && a.item !== v('Item')) return false;
+        if(v('Item') && a.item !== v('Item') && !(Array.isArray(a.servicos) && a.servicos.indexOf(v('Item')) >= 0)) return false;
         if(v('Garantia') && a.garantia !== v('Garantia')) return false;
         if(v('Marca') && a.marca !== v('Marca')) return false;
         if(v('Combustivel') && a.combustivel !== v('Combustivel')) return false;
@@ -5048,6 +5116,7 @@ function renderDetalheAnuncioModal(a){
         if(a.garantia) linhasFicha.push(['Garantia', a.garantia]);
     }
     if(ehCelulares(a.categoria)){
+        if(a.tipo_celular === 'Assistência' && Array.isArray(a.servicos) && a.servicos.length > 1) linhasFicha.push(['Serviços', a.servicos.join(' · ')]);
         if(a.compativel) linhasFicha.push([a.tipo_celular === 'Assistência' ? 'Atendemos' : 'Compatível com', a.compativel]);
         if(a.tipo_celular === 'Assistência' && a.prazo) linhasFicha.push(['Prazo', a.prazo]);
         if(a.garantia) linhasFicha.push(['Garantia', a.garantia]);
