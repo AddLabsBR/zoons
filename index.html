@@ -2051,14 +2051,24 @@ function servicosCelAtuais(a){
     if(Array.isArray(a.servicos) && a.servicos.length) return a.servicos;
     return a.item ? [a.item] : [];
 }
-function pillsServicosCel(atuais){
-    return `<div id="anServCel">` + servicosCelGrupos().map(([g, l]) =>
+function pillsServicosCel(atuais, grupos){
+    return `<div id="anServCel">` + (grupos || servicosCelGrupos()).map(([g, l]) =>
         `<p class="cel-sub" style="font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8A8E95;margin:10px 0 5px;">${esc(g)}</p><div class="pills">` +
         l.map(o => `<button type="button" class="pill${atuais.indexOf(o) >= 0 ? ' on' : ''}" data-v="${esc(o)}" aria-pressed="${atuais.indexOf(o) >= 0}" onclick="alternarPillMulti(this)">${esc(o)}</button>`).join('') + `</div>`).join('') + `</div>`;
 }
 function alternarPillMulti(btn){
     btn.classList.toggle('on');
     btn.setAttribute('aria-pressed', btn.classList.contains('on') ? 'true' : 'false');
+}
+// Serviços marcados no anúncio (qualquer categoria com seleção múltipla)
+function servicosMarcadosDe(a){
+    if(a.categoria === 'Celulares') return servicosCelAtuais(a);
+    return Array.isArray(a.servicos) ? a.servicos : [];
+}
+function grupoDoServico(cat, serv){
+    const F = FLUXOS[cat]; if(!F) return '';
+    const g = F.grupos.find(x => x[1].indexOf(serv) >= 0);
+    return g ? g[0] : '';
 }
 function servicosCelMarcados(){
     return Array.from(document.querySelectorAll('#anServCel .pill.on')).map(b => b.dataset.v);
@@ -2136,6 +2146,7 @@ const SERV_CFG = {
         cta: () => 'Faça seu pedido pelo WhatsApp!'
     },
     'Beleza': {
+        multi: true,
         itemLabel: 'Tipo de serviço', itens: ['Cabelo','Unhas','Estética facial','Barba','Maquiagem','Depilação','Massagem','Outro'],
         cobrancaLabel: 'Tipo de preço', cobrancas: ['Valor fixo','A partir de','Sob orçamento'], defCobranca: 'Valor fixo',
         modLabel: 'O que está incluso', modPlaceholder: 'Ex: corte, lavagem e finalização',
@@ -2220,7 +2231,10 @@ function chipsServicoCat(a){
     const cfg = servCfg(a.categoria);
     if(!cfg) return [];
     const c = [];
-    if(a.item) c.push(a.item);
+    if(cfg.multi && Array.isArray(a.servicos) && a.servicos.length){
+        a.servicos.slice(0, 3).forEach(x => c.push(x));
+        if(a.servicos.length > 3) c.push('+' + (a.servicos.length - 3) + (a.servicos.length - 3 === 1 ? ' serviço' : ' serviços'));
+    } else if(a.item) c.push(a.item);
     (cfg.selects || []).forEach(sx => { const v = a[sx.campo]; const t = v && sx.chip ? sx.chip(v) : null; if(t) c.push(t); });
     (cfg.nums || []).forEach(nx => { const v = a[nx.campo]; if(typeof v === 'number' && v > 0 && nx.chip) c.push(nx.chip(v)); });
     (cfg.checks || []).forEach(cx => { if(a[cx.campo]) c.push(cx.chip); });
@@ -2232,7 +2246,8 @@ function fichaServicoCat(a){
     const cfg = servCfg(a.categoria);
     if(!cfg) return [];
     const r = [];
-    if(a.item && cfg.itemLabel) r.push([cfg.itemLabel, a.item]);
+    if(cfg.multi && Array.isArray(a.servicos) && a.servicos.length) r.push(['Serviços', a.servicos.join(' · ')]);
+    else if(a.item && cfg.itemLabel) r.push([cfg.itemLabel, a.item]);
     if(a.modalidades) r.push([cfg.modLabel, a.modalidades]);
     if(a.horario) r.push([cfg.horarioLabel, a.horario]);
     (cfg.selects || []).forEach(sx => { if(a[sx.campo]) r.push([sx.label, a[sx.campo]]); });
@@ -2306,7 +2321,10 @@ function servicoFormHTML(categoria, a, campoEstilo, pills){
     if(a.cobranca && !cobr.includes(a.cobranca)) cobr.push(a.cobranca);
     const cobrAtual = a.cobranca || cfg.defCobranca;
     let h = '<div style="margin-top:12px;">';
-    if(cfg.itens){
+    if(cfg.multi && FLUXOS[categoria]){
+        h += `<label class="cel-label" style="margin-top:0;">Quais serviços você presta? <span style="font-weight:500;color:var(--muted);">(marque quantos quiser)</span></label>
+              ${pillsServicosCel(Array.isArray(a.servicos) ? a.servicos : [], FLUXOS[categoria].grupos)}`;
+    } else if(cfg.itens){
         h += `<label class="cel-label" style="margin-top:0;">${cfg.itemLabel}</label>
               <input type="hidden" id="anItemSrv" value="${esc(a.item || '')}">
               ${pills(cfg.itens, 'anItemSrv', a.item || '')}`;
@@ -2348,7 +2366,13 @@ function servicoColetar(categoria, dados){
     dados.cobranca = val('anCobranca') || cfg.defCobranca;
     dados.modalidades = val('anModalidades').trim();
     dados.horario = val('anHorario').trim();
-    dados.item = cfg.itens ? val('anItemSrv') : null;
+    if(cfg.multi){
+        const marc = servicosCelMarcados();
+        dados.servicos = marc;
+        dados.item = marc.length ? grupoDoServico(categoria, marc[0]) : '';
+    } else {
+        dados.item = cfg.itens ? val('anItemSrv') : null;
+    }
     (cfg.selects || []).forEach(sx => { dados[sx.campo] = val('anSel_' + sx.campo) || sx.def; });
     (cfg.nums || []).forEach(nx => { dados[nx.campo] = Number(val('anNum_' + nx.campo)) || null; });
     (cfg.checks || []).forEach(cx => { const el = document.getElementById('anChk_' + cx.campo); dados[cx.campo] = !!(el && el.checked); });
@@ -2523,6 +2547,7 @@ const QUANDO_URG = ['Urgente (hoje)', 'Nesta semana', 'Neste mês', 'Só estou p
 const FLUXOS = {
     'Celulares': {
         unico: true,
+        unicoCfg: { titulo: 'Agilize seu atendimento', sub: 'Conte o que seu celular precisa e continue a conversa no WhatsApp.', lblProb: 'Tipo de problema', phProb: 'Selecione o problema', antes: ['aparelho'] },
         quando: a => a.tipo_celular === 'Assistência' && !!a.atendimento && a.atendimento !== 'Na loja',
         saudacao: 'preciso de assistência técnica para o meu celular', ok: 'Orçamento grátis e sem compromisso', okPadrao: 'Atendimento a domicílio pelo WhatsApp',
         titulo2: 'Chame o técnico', rotuloServ: 'Problema',
@@ -2547,6 +2572,28 @@ const FLUXOS = {
             { k: 'local', rot: 'Endereço (rua e bairro)', lab: 'Rua, número e bairro', ph: 'Ex: Rua das Flores, 120, Centro', req: 1 },
             { k: 'quando', rot: 'Quando', lab: 'Para quando precisa?', sel: ['O quanto antes (hoje)','Amanhã','Nesta semana','Só quero o orçamento'] },
             { k: 'det', rot: 'Detalhes', lab: 'Conte o que aconteceu (opcional)', ph: 'Ex: caiu e a tela ficou preta' }
+        ]
+    },
+    'Beleza': {
+        unico: true,
+        unicoCfg: { titulo: 'Agilize seu agendamento', sub: 'Escolha o serviço e o melhor horário e continue a conversa no WhatsApp.', lblProb: 'Serviço que você precisa', phProb: 'Selecione o serviço', antes: [] },
+        saudacao: 'gostaria de agendar um horário', ok: 'Agendamento rápido pelo WhatsApp', okPadrao: 'Agendamento rápido pelo WhatsApp',
+        titulo2: 'Agilize seu agendamento', rotuloServ: 'Serviço',
+        grupos: [
+            ['Cabelo', ['Corte feminino','Corte masculino','Corte infantil','Escova / Modelagem','Coloração / Tintura','Mechas / Luzes','Hidratação / Tratamento','Progressiva / Alisamento','Penteado / Noiva']],
+            ['Unhas', ['Manicure','Pedicure','Esmaltação em gel','Unha de gel / fibra','Alongamento','Nail art']],
+            ['Estética facial', ['Limpeza de pele','Design de sobrancelha','Henna / Tintura de sobrancelha','Micropigmentação','Extensão de cílios','Peeling / Tratamento facial']],
+            ['Barba', ['Barba','Corte e barba','Sobrancelha masculina']],
+            ['Maquiagem', ['Maquiagem social','Maquiagem de noiva','Maquiagem artística']],
+            ['Depilação', ['Depilação a cera','Depilação íntima','Depilação com linha']],
+            ['Massagem', ['Massagem relaxante','Drenagem linfática','Massagem modeladora','Massagem terapêutica']],
+            ['Outros', ['Outro serviço']]
+        ],
+        campos: [
+            { k: 'dia', rot: 'Dia preferido', lab: 'Qual dia você prefere?', ph: 'Ex: sábado ou 15/11', req: 1 },
+            { k: 'periodo', rot: 'Período', lab: 'Melhor período', sel: ['Manhã (8h às 12h)','Tarde (12h às 18h)','Noite (18h às 21h)','Qualquer horário'] },
+            { k: 'hora', rot: 'Horário', lab: 'Horário exato (opcional)', ph: 'Ex: 14h30' },
+            { k: 'det', rot: 'Observações', lab: 'Observações (opcional)', ph: 'Ex: primeira vez, cabelo longo' }
         ]
     },
     'Construção': {
@@ -2657,28 +2704,34 @@ function abrirFormFluxo(anuncioId){
 }
 /* Versão em uma janela só (nome, aparelho, tipo de problema, endereço) — usada na assistência de celular */
 function abrirFormFluxoUnico(a, F){
+    const U = F.unicoCfg || {};
+    const antes = U.antes || [];
     let nomeSalvo = '';
     try { nomeSalvo = localStorage.getItem('zoons_pet_nome') || ''; } catch(e){}
-    const marcados = servicosCelAtuais(a);
-    let grupos = F.grupos.map(([g, l]) => [g, marcados.length ? l.filter(x => marcados.indexOf(x) >= 0) : l]).filter(([g, l]) => l.length);
-    if(!grupos.length) grupos = F.grupos; // anúncio antigo, com um serviço que não está na lista nova
+    let marcados = servicosMarcadosDe(a);
+    // anúncio antigo: só tem o tipo geral (ex.: "Cabelo") → mostra só esse grupo
+    let grupos = marcados.length ? F.grupos.map(([g, l]) => [g, l.filter(x => marcados.indexOf(x) >= 0)]).filter(([g, l]) => l.length) : [];
+    if(!grupos.length && a.item){ const g = F.grupos.filter(x => x[0] === a.item); if(g.length) grupos = g; }
+    if(!grupos.length) grupos = F.grupos;
     const unico = marcados.length === 1 ? marcados[0] : '';
     const opts = grupos.map(([g, l]) => `<optgroup label="${esc(g)}">${l.map(x => `<option value="${esc(x)}"${x === unico ? ' selected' : ''}>${esc(x)}</option>`).join('')}</optgroup>`).join('');
-    const outros = camposFluxo(F, a).filter(c => c.k !== 'aparelho').map(c => `<label class="pet-lbl" for="fx_${c.k}">${esc(c.lab)}</label><div class="field">` +
+    const campoHTML = c => `<label class="pet-lbl" for="fx_${c.k}">${esc(c.lab)}</label><div class="field">` +
         (c.sel ? `<select id="fx_${c.k}">${c.sel.map(o => `<option>${esc(o)}</option>`).join('')}</select>`
-               : `<input id="fx_${c.k}" type="text" maxlength="250" placeholder="${esc(c.ph || '')}" oninput="fluxoLimparErro()">`) + `</div>`).join('');
+               : `<input id="fx_${c.k}" type="text" maxlength="250" placeholder="${esc(c.ph || '')}" oninput="fluxoLimparErro()">`) + `</div>`;
+    const todos = camposFluxo(F, a);
+    const camposAntes = antes.map(k => todos.find(c => c.k === k)).filter(Boolean).map(campoHTML).join('');
+    const camposDepois = todos.filter(c => antes.indexOf(c.k) < 0).map(campoHTML).join('');
     showModal(`
         <button type="button" class="anuncio-voltar" onclick="abrirDetalheAnuncio('${esc(a.id)}')">‹ Voltar ao anúncio</button>
-        <h3 style="margin:6px 0 2px;">Agilize seu atendimento</h3>
-        <p style="font-size:13px;color:#6B6F76;margin:0 0 14px;">Conte o que seu celular precisa e continue a conversa no WhatsApp.</p>
+        <h3 style="margin:6px 0 2px;">${esc(U.titulo || 'Agilize seu atendimento')}</h3>
+        <p style="font-size:13px;color:#6B6F76;margin:0 0 14px;">${esc(U.sub || '')}</p>
         <label class="pet-lbl" for="fx_nome">Seu nome</label>
         <div class="field"><input id="fx_nome" type="text" maxlength="60" placeholder="Digite seu nome" value="${esc(nomeSalvo)}" oninput="fluxoLimparErro()"></div>
-        <label class="pet-lbl" for="fx_aparelho">Modelo do celular</label>
-        <div class="field"><input id="fx_aparelho" type="text" maxlength="80" placeholder="Ex: Samsung Galaxy A54" oninput="fluxoLimparErro()"></div>
-        <label class="pet-lbl" for="fx_problema">Tipo de problema</label>
-        <div class="field"><select id="fx_problema" onchange="fluxoProblemaMudou()"><option value="">Selecione o problema</option>${opts}</select></div>
+        ${camposAntes}
+        <label class="pet-lbl" for="fx_problema">${esc(U.lblProb || 'Serviço')}</label>
+        <div class="field"><select id="fx_problema" onchange="fluxoProblemaMudou()"><option value="">${esc(U.phProb || 'Selecione')}</option>${opts}</select></div>
         <p id="obraTipo" style="font-size:12.5px;color:#8A8E95;margin:6px 0 0;"></p>
-        ${outros}
+        ${camposDepois}
         <p id="obraErro" style="color:#C0392B;font-size:12.5px;margin:10px 0 0;display:none;"></p>
         <button type="button" class="anuncio-btn-whatsapp pet-continuar" onclick="fluxoContinuar('${esc(a.id)}')">Continuar no WhatsApp</button>
     `);
@@ -2728,12 +2781,12 @@ function fluxoContinuar(anuncioId){
     if(!nome){ erro.textContent = 'Informe seu nome.'; erro.style.display = 'block'; return; }
     if(F.unico){
         _fluxoServ = document.getElementById('fx_problema').value;
-        if(!_fluxoServ){ erro.textContent = 'Escolha o tipo de problema.'; erro.style.display = 'block'; return; }
+        if(!_fluxoServ){ erro.textContent = (F.unicoCfg && F.unicoCfg.erroProb) || 'Escolha ' + ((F.unicoCfg && F.unicoCfg.lblProb) ? 'o campo “' + F.unicoCfg.lblProb + '”.' : 'uma opção.'); erro.style.display = 'block'; return; }
     }
     const L = [];
     for(const c of camposFluxo(F, a)){
         const v = document.getElementById('fx_' + c.k).value.trim();
-        if(c.req && !v){ erro.textContent = 'Preencha: ' + c.lab.toLowerCase() + '.'; erro.style.display = 'block'; return; }
+        if(c.req && !v){ erro.textContent = 'Preencha o campo “' + c.rot + '”.'; erro.style.display = 'block'; return; }
         if(v) L.push(`${c.rot}: ${v}`);
     }
     const numero = numeroWhatsappCompleto(a.empresaWhatsapp);
