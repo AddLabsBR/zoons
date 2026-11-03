@@ -1566,7 +1566,7 @@ html{overflow-x:hidden}
 
     <div class="section-title reveal">
         <h2>Categorias</h2>
-        <span class="eyebrow">9 ÁREAS ATIVAS · TOQUE PARA FILTRAR</span>
+        <span class="eyebrow"><span id="qtdAreas">12</span> ÁREAS ATIVAS · TOQUE PARA FILTRAR</span>
     </div>
     <p class="section-lead reveal">Escolha a área do serviço que você precisa e veja quem atende na sua região.</p>
 
@@ -5007,6 +5007,7 @@ let _anunciosData = {};
 function idSeguro(id){ return typeof id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(id); }
 const CATEGORIAS_LISTA = ['Celulares','Informática','Automóveis','Imóveis','Beleza','Alimentação','Pets','Construção','Academia','Eletricista','Encanador','Limpeza'];
 function catSegura(c){ return CATEGORIAS_LISTA.indexOf(c) >= 0 ? c : ''; }
+(function(){ var el = document.getElementById('qtdAreas'); if(el) el.textContent = CATEGORIAS_LISTA.length; })();
 
 function renderAnuncioCard(a, anuncioId, empresa, mostrarEmpresa){
     if(!idSeguro(anuncioId) || !idSeguro(empresa.id)) return '';
