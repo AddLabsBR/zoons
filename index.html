@@ -339,6 +339,9 @@ footer::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:no
   .category[data-cat="Eletricista"]{--tn:#FFF5C2;--ti:#B88A00}
   .category[data-cat="Encanador"]{--tn:#DAF0FB;--ti:#1B86B8}
   .category[data-cat="Limpeza"]{--tn:#E3F4D9;--ti:#4C9A2A}
+  .category[data-cat="Mecânico"]{--tn:#FFE6D2;--ti:#D2650F}
+  .category[data-cat="Fretes"]{--tn:#E6E2FA;--ti:#6552C8}
+  .category[data-cat="Assistência"]{--tn:#D6F1EE;--ti:#1A8A84}
 }
 @media(min-width:521px) and (max-width:900px){
   .categories{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
@@ -1584,7 +1587,7 @@ html body .hero.hero .hero-bg{background-image:linear-gradient(90deg,rgba(6,28,2
 
     <div class="section-title reveal">
         <h2>Categorias</h2>
-        <span class="eyebrow"><span id="qtdAreas">12</span> ÁREAS ATIVAS · TOQUE PARA FILTRAR</span>
+        <span class="eyebrow"><span id="qtdAreas">15</span> ÁREAS ATIVAS · TOQUE PARA FILTRAR</span>
     </div>
     <p class="section-lead reveal">Escolha a área do serviço que você precisa e veja quem atende na sua região.</p>
 
@@ -1624,6 +1627,15 @@ html body .hero.hero .hero-bg{background-image:linear-gradient(90deg,rgba(6,28,2
         </div>
         <div class="category" data-cat="Limpeza" onclick="filterCategory('Limpeza', this)">
             <div class="icon-ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.4 3.6L17 8l-3.6 1.4L12 13l-1.4-3.6L7 8l3.6-1.4z"/><path d="m18 14 .8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z"/><path d="m6.5 15 .6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/></svg></div><p>Limpeza</p><span class="count" data-count-for="Limpeza">—</span>
+        </div>
+        <div class="category" data-cat="Mecânico" onclick="filterCategory('Mecânico', this)">
+            <div class="icon-ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5 5L3.6 17.4a1.8 1.8 0 0 0 2.6 2.6l6.1-6.1a4 4 0 0 0 5-5l-2.4 2.4-2.2-.6-.6-2.2z"/></svg></div><p>Mecânico</p><span class="count" data-count-for="Mecânico">—</span>
+        </div>
+        <div class="category" data-cat="Fretes" onclick="filterCategory('Fretes', this)">
+            <div class="icon-ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5h11v9h-11z"/><path d="M13.5 9.5h4l3 3.2v2.8h-7z"/><circle cx="7" cy="17.6" r="1.8"/><circle cx="17" cy="17.6" r="1.8"/></svg></div><p>Fretes</p><span class="count" data-count-for="Fretes">—</span>
+        </div>
+        <div class="category" data-cat="Assistência" onclick="filterCategory('Assistência', this)">
+            <div class="icon-ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.8"/><path d="M8 20h8M12 16v4"/><path d="m9.5 10 1.8 1.8L15 8.2"/></svg></div><p>Assistência</p><span class="count" data-count-for="Assistência">—</span>
         </div>
     </div>
 
@@ -1884,6 +1896,8 @@ function quickCat(c){var el=document.querySelector('.category[data-cat="'+c+'"]'
                 <option>Academia</option>
                 <option>Eletricista</option><option>Encanador</option>
                 <option>Limpeza</option>
+                <option value="Mecânico">Mecânico e serviços automotivos</option><option value="Fretes">Fretes e mudanças</option>
+                <option value="Assistência">Assistência técnica</option>
             </select>
         </div>
         <div class="field"><label>WhatsApp (com DDD)</label><input id="regWhatsapp" type="tel" placeholder="41999990000" required></div>
@@ -2119,7 +2133,7 @@ function atualizarDescontoPreview(){
 }
 
 /* Categorias de serviços (Academia, Beleza...) têm campos próprios: tipo de cobrança, modalidades e horário */
-const CATEGORIAS_SERVICO = ['Academia', 'Beleza', 'Pets', 'Construção', 'Alimentação', 'Eletricista', 'Encanador', 'Limpeza'];
+const CATEGORIAS_SERVICO = ['Academia', 'Beleza', 'Pets', 'Construção', 'Alimentação', 'Eletricista', 'Encanador', 'Limpeza', 'Mecânico', 'Fretes', 'Assistência'];
 const EXEMPLO_TITULO = {
     'Academia': 'Ex: Plano Mensal Musculação',
     'Beleza': 'Ex: Corte + escova',
@@ -2128,6 +2142,9 @@ const EXEMPLO_TITULO = {
     'Eletricista': 'Ex: Instalação de chuveiro e tomadas',
     'Encanador': 'Ex: Desentupimento e caça-vazamento',
     'Limpeza': 'Ex: Faxina residencial completa',
+    'Mecânico': 'Ex: Revisão completa + troca de óleo',
+    'Fretes': 'Ex: Mudança residencial com caminhão baú',
+    'Assistência': 'Ex: Conserto de geladeira e máquina de lavar',
     'Alimentação': 'Ex: Marmita executiva + suco'
 };
 const COBRANCAS = ['Por mês', 'Por sessão', 'Por hora', 'Por dia', 'Valor fixo', 'A partir de', 'Sob orçamento'];
@@ -2143,7 +2160,7 @@ function precoComCobranca(a){
     if(!tem) return '';
     if(c === 'A partir de') return 'A partir de ' + valor;
     const suf = { 'Por mês': '/mês', 'Por sessão': '/sessão', 'Por hora': '/hora', 'Por dia': '/dia', 'Por m²': '/m²', 'Por consulta': '/consulta',
-        'Plano mensal': '/mês', 'Plano trimestral': '/trimestre', 'Plano semestral': '/semestre', 'Plano anual': '/ano', 'Aula avulsa': '/aula', 'Day use (diária)': '/dia' }[c];
+        'Plano mensal': '/mês', 'Plano trimestral': '/trimestre', 'Plano semestral': '/semestre', 'Plano anual': '/ano', 'Aula avulsa': '/aula', 'Day use (diária)': '/dia', 'Por visita': '/visita', 'Por ponto': '/ponto', 'Por diária': '/diária', 'Por viagem': '/viagem', 'Por km': '/km' }[c];
     return suf ? valor + ' ' + suf : valor;
 }
 
@@ -2228,6 +2245,38 @@ const SERV_CFG = {
         checks: [{ campo: 'leva_produtos', label: 'Leva os produtos de limpeza', chip: 'Leva os produtos' }, { campo: 'orcamento_gratis', label: 'Orçamento grátis e sem compromisso', chip: 'Orçamento grátis' }],
         fotosLabel: 'Fotos de trabalhos realizados (até 6)',
         cta: () => 'Sua casa limpa sem preocupação — peça seu orçamento!'
+    },
+    'Mecânico': {
+        itemLabel: 'Tipo de serviço', itens: ['Revisão completa','Troca de óleo e filtros','Freios','Suspensão e direção','Motor','Elétrica e injeção','Ar-condicionado automotivo','Câmbio e embreagem','Funilaria e pintura','Pneus, alinhamento e balanceamento','Guincho / Socorro','Outro'],
+        cobrancaLabel: 'Como cobra', cobrancas: ['Sob orçamento','A partir de','Valor fixo','Por hora'], defCobranca: 'Sob orçamento',
+        modLabel: 'Veículos atendidos', modPlaceholder: 'Ex: carros nacionais e importados, motos',
+        horarioLabel: 'Horário de atendimento', horarioPlaceholder: 'Ex: Seg a Sex 8h–18h · Sáb 8h–12h',
+        selects: [{ campo: 'garantia', label: 'Garantia do serviço', opcoes: GARANTIAS, def: 'Sem garantia', chip: v => v === 'Sem garantia' ? null : 'Garantia ' + v }],
+        nums: [{ campo: 'anos_experiencia', label: 'Anos de experiência', ph: 'Ex: 10', chip: v => v + (Number(v) === 1 ? ' ano' : ' anos') + ' de experiência', fmt: v => v + (Number(v) === 1 ? ' ano' : ' anos') }],
+        checks: [{ campo: 'atende_local', label: 'Atendo no local / socorro', chip: 'Atende no local' }, { campo: 'orcamento_gratis', label: 'Orçamento grátis e sem compromisso', chip: 'Orçamento grátis' }],
+        fotosLabel: 'Fotos da oficina e de serviços realizados (até 6)',
+        cta: a => a.atende_local ? 'Carro parou? Chame o mecânico!' : 'Peça seu orçamento — resposta rápida!'
+    },
+    'Fretes': {
+        itemLabel: 'Tipo de serviço', itens: ['Mudança residencial','Mudança comercial','Frete de móveis e eletros','Materiais de construção','Carga fechada','Entrega de encomendas','Carreto / Pequeno frete','Intermunicipal / Interestadual','Outro'],
+        cobrancaLabel: 'Como cobra', cobrancas: ['Sob orçamento','A partir de','Valor fixo','Por viagem','Por km','Por hora'], defCobranca: 'Sob orçamento',
+        modLabel: 'Região atendida', modPlaceholder: 'Ex: Curitiba, São José dos Pinhais e região',
+        horarioLabel: 'Horário de atendimento', horarioPlaceholder: 'Ex: Todos os dias 7h–19h',
+        selects: [{ campo: 'veiculo', label: 'Tipo de veículo', opcoes: ['Fiorino / Van','Utilitário (Strada, Saveiro)','Caminhonete','Caminhão baú','Caminhão aberto','Mais de um veículo'], def: 'Caminhão baú', chip: v => v }],
+        checks: [{ campo: 'ajudantes', label: 'Inclui ajudantes', chip: 'Com ajudantes' }, { campo: 'montagem', label: 'Desmontagem e montagem de móveis', chip: 'Monta e desmonta' }, { campo: 'orcamento_gratis', label: 'Orçamento grátis e sem compromisso', chip: 'Orçamento grátis' }],
+        fotosLabel: 'Fotos do veículo e do trabalho (até 6)',
+        cta: () => 'Mudança ou frete? Peça seu orçamento!'
+    },
+    'Assistência': {
+        itemLabel: 'Tipo de aparelho', itens: ['Geladeira / Freezer','Máquina de lavar / Secadora','Fogão / Cooktop','Micro-ondas','Ar-condicionado','TV e áudio','Impressora','Lava-louças','Outro'],
+        cobrancaLabel: 'Como cobra', cobrancas: ['Sob orçamento','A partir de','Valor fixo','Por visita'], defCobranca: 'Sob orçamento',
+        modLabel: 'Marcas atendidas', modPlaceholder: 'Ex: Brastemp, Consul, Electrolux, LG, Samsung',
+        horarioLabel: 'Horário de atendimento', horarioPlaceholder: 'Ex: Seg a Sáb 8h–18h',
+        selects: [{ campo: 'garantia', label: 'Garantia do serviço', opcoes: GARANTIAS, def: 'Sem garantia', chip: v => v === 'Sem garantia' ? null : 'Garantia ' + v }],
+        nums: [{ campo: 'anos_experiencia', label: 'Anos de experiência', ph: 'Ex: 10', chip: v => v + (Number(v) === 1 ? ' ano' : ' anos') + ' de experiência', fmt: v => v + (Number(v) === 1 ? ' ano' : ' anos') }],
+        checks: [{ campo: 'domicilio', label: 'Atendimento em domicílio', chip: 'Atende em domicílio' }, { campo: 'orcamento_gratis', label: 'Orçamento grátis e sem compromisso', chip: 'Orçamento grátis' }],
+        fotosLabel: 'Fotos de trabalhos realizados (até 6)',
+        cta: () => 'Aparelho com defeito? Peça seu orçamento!'
     },
     'Academia': {
         itens: null,
@@ -2685,6 +2734,62 @@ const FLUXOS = {
             { k: 'local', rot: 'Bairro / cidade', lab: 'Bairro / cidade', ph: 'Ex: Centro, São José dos Pinhais', req: 1 },
             { k: 'dia', rot: 'Dia desejado', lab: 'Dia e horário desejados (opcional)', ph: 'Ex: sábado de manhã' },
             { k: 'det', rot: 'Observações', lab: 'Observações (opcional)', ph: 'Ex: tenho 2 cachorros, levar produtos' }
+        ]
+    },
+    'Mecânico': {
+        saudacao: 'preciso de um serviço para o meu veículo', ok: 'Orçamento grátis e sem compromisso', okPadrao: 'Atendimento rápido pelo WhatsApp',
+        titulo2: 'Agilize seu atendimento', rotuloServ: 'Serviço',
+        grupos: [
+            ['Emergência', ['Carro não liga','Pane na estrada / Guincho','Luz de alerta no painel','Superaquecimento / Fumaça','Pneu furado / Estepe','Bateria arriada']],
+            ['Manutenção', ['Revisão completa','Troca de óleo e filtros','Freios (pastilhas e discos)','Suspensão e direção','Correia dentada / Distribuição','Embreagem e câmbio','Escapamento']],
+            ['Elétrica e injeção', ['Diagnóstico com scanner','Bateria e alternador','Motor de partida','Injeção eletrônica','Ar-condicionado automotivo','Vidros e travas elétricas']],
+            ['Funilaria e pintura', ['Amassado / Funilaria','Pintura e polimento','Para-choque e retrovisor']],
+            ['Pneus', ['Alinhamento e balanceamento','Troca de pneus','Rodízio de pneus']],
+            ['Outros', ['Vistoria / Laudo cautelar','Motos','Outro serviço']]
+        ],
+        campos: [
+            { k: 'tipoveic', rot: 'Tipo de veículo', lab: 'Tipo de veículo', sel: ['Carro','Moto','Caminhonete / Utilitário','Caminhão'] },
+            { k: 'veiculo', rot: 'Marca, modelo e ano', lab: 'Marca, modelo e ano', ph: 'Ex: Gol 1.0 2015', req: 1 },
+            { k: 'modo', rot: 'Atendimento', lab: 'Como prefere?', sel: ['Levo o veículo até a oficina','Preciso de atendimento onde estou'] },
+            { k: 'local', rot: 'Bairro / cidade', lab: 'Bairro / cidade (ou onde o veículo está)', ph: 'Ex: Centro, São José dos Pinhais', req: 1 },
+            { k: 'quando', rot: 'Urgência', lab: 'Para quando precisa?', sel: QUANDO_URG },
+            { k: 'det', rot: 'Detalhes', lab: 'Conte o que está acontecendo (opcional)', ph: 'Ex: barulho ao frear, luz da injeção acesa' }
+        ]
+    },
+    'Fretes': {
+        saudacao: 'gostaria de um orçamento de frete / mudança', ok: 'Orçamento grátis e sem compromisso', okPadrao: 'Peça seu orçamento pelo WhatsApp',
+        titulo2: 'Monte seu orçamento', rotuloServ: 'Serviço',
+        grupos: [
+            ['Mudanças', ['Mudança residencial completa','Mudança de apartamento / kitnet','Mudança comercial / escritório','Pequena mudança','Desmontagem e montagem de móveis','Embalagem e proteção dos móveis']],
+            ['Fretes', ['Frete de móveis e eletrodomésticos','Materiais de construção','Carga fechada','Carreto / Pequeno frete','Entrega de encomendas','Intermunicipal / Interestadual']],
+            ['Outros', ['Içamento de móveis (andar alto)','Retirada de entulho','Outro serviço']]
+        ],
+        campos: [
+            { k: 'origem', rot: 'Retirada (origem)', lab: 'Endereço de retirada (bairro / cidade)', ph: 'Ex: Centro, São José dos Pinhais', req: 1 },
+            { k: 'destino', rot: 'Entrega (destino)', lab: 'Endereço de entrega (bairro / cidade)', ph: 'Ex: Água Verde, Curitiba', req: 1 },
+            { k: 'acesso', rot: 'Acesso', lab: 'Acesso nos dois endereços', sel: ['Casa / Térreo','Apartamento com elevador','Apartamento com escada','Escada e muitos degraus'] },
+            { k: 'ajuda', rot: 'Ajudantes', lab: 'Precisa de ajudantes?', sel: ['Sim, preciso de ajudantes','Só o transporte'] },
+            { k: 'quando', rot: 'Quando', lab: 'Para quando precisa?', sel: QUANDO_URG },
+            { k: 'det', rot: 'Detalhes', lab: 'O que será transportado? (opcional)', ph: 'Ex: geladeira, cama de casal, 20 caixas' }
+        ]
+    },
+    'Assistência': {
+        saudacao: 'preciso de assistência técnica', ok: 'Orçamento grátis e sem compromisso', okPadrao: 'Atendimento rápido pelo WhatsApp',
+        titulo2: 'Chame o técnico', rotuloServ: 'Defeito',
+        grupos: [
+            ['Geladeira e freezer', ['Geladeira não gela','Geladeira vazando água','Barulho / Motor não para','Freezer com gelo demais']],
+            ['Lavar e secar', ['Máquina de lavar não centrifuga','Máquina não enche / não drena','Máquina de lavar com vazamento','Secadora não seca','Lava-louças com defeito']],
+            ['Cozinha', ['Fogão / Cooktop não acende','Forno com defeito','Micro-ondas não esquenta','Coifa / Depurador']],
+            ['Ar-condicionado', ['Ar não gela','Instalação de ar-condicionado','Limpeza e manutenção','Vazamento de água / gás']],
+            ['TV, áudio e outros', ['TV sem imagem / sem som','Instalação de TV e suporte','Som e home theater','Impressora']],
+            ['Outros', ['Diagnóstico / orçamento','Outro aparelho']]
+        ],
+        campos: [
+            { k: 'aparelho', rot: 'Aparelho', lab: 'Marca e modelo do aparelho', ph: 'Ex: Brastemp BRM44 frost free', req: 1 },
+            { k: 'modo', rot: 'Atendimento', lab: 'Como prefere?', sel: ['O técnico vai até mim','Levo o aparelho até a assistência'] },
+            { k: 'local', rot: 'Bairro / cidade', lab: 'Bairro / cidade', ph: 'Ex: Centro, São José dos Pinhais', req: 1 },
+            { k: 'quando', rot: 'Urgência', lab: 'Para quando precisa?', sel: QUANDO_URG },
+            { k: 'det', rot: 'Detalhes', lab: 'Conte o defeito (opcional)', ph: 'Ex: liga mas não gela, faz barulho' }
         ]
     }
 };
@@ -3145,7 +3250,7 @@ const cacheListas = {};
 let fase = 'destaque';       // paginação: primeiro 'destaque', depois 'normal'
 
 // Aba "Anúncios" (precisa existir antes do primeiro applyFilters)
-const CATEGORIAS_COM_ANUNCIOS = ['Imóveis', 'Automóveis', 'Celulares', 'Informática', 'Alimentação', 'Beleza', 'Pets', 'Construção', 'Academia', 'Eletricista', 'Encanador', 'Limpeza'];
+const CATEGORIAS_COM_ANUNCIOS = ['Imóveis', 'Automóveis', 'Celulares', 'Informática', 'Alimentação', 'Beleza', 'Pets', 'Construção', 'Academia', 'Eletricista', 'Encanador', 'Limpeza', 'Mecânico', 'Fretes', 'Assistência'];
 const GLOBAL_MAX_EMPRESAS = 40;
 const _anunciosGlobalCache = {};
 let _anunciosGlobalVersao = 0;
@@ -5023,7 +5128,7 @@ let _anunciosData = {};
 /* Segurança: IDs entram em atributos onclick, então só aceitamos letras, números, _ e -.
    (O Firestore gera IDs assim; qualquer outro é ignorado e nunca chega ao HTML.) */
 function idSeguro(id){ return typeof id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(id); }
-const CATEGORIAS_LISTA = ['Celulares','Informática','Automóveis','Imóveis','Beleza','Alimentação','Pets','Construção','Academia','Eletricista','Encanador','Limpeza'];
+const CATEGORIAS_LISTA = ['Celulares','Informática','Automóveis','Imóveis','Beleza','Alimentação','Pets','Construção','Academia','Eletricista','Encanador','Limpeza','Mecânico','Fretes','Assistência'];
 function catSegura(c){ return CATEGORIAS_LISTA.indexOf(c) >= 0 ? c : ''; }
 (function(){ var el = document.getElementById('qtdAreas'); if(el) el.textContent = CATEGORIAS_LISTA.length; })();
 
