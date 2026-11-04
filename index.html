@@ -1760,7 +1760,7 @@ html body .hero.hero .hero-bg{background-image:linear-gradient(90deg,rgba(6,28,2
             <nav class="f-links" aria-label="Rodapé">
                 <a href="termos-de-uso.html">Termos de Uso</a>
                 <a href="politica-privacidade.html">Política de Privacidade</a>
-                <a href="https://t.me/+5596984293377" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 4 3 11l5.5 2L10 19l3-3.5 4.5 3.5z"/><path d="m8.5 13 8-5.5"/></svg>Suporte no Telegram</a>
+                <a href="#" onclick="abrirSuporte();return false"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M21 4 3 11l5.5 2L10 19l3-3.5 4.5 3.5z"/><path d="m8.5 13 8-5.5"/></svg>Suporte</a>
             </nav>
         </div>
         <p class="f-fine">© Todos os direitos reservados · Brasil 2026</p>
@@ -1921,7 +1921,6 @@ function quickCat(c){var el=document.querySelector('.category[data-cat="'+c+'"]'
         <div class="field"><label>E-mail (login da conta)</label><input id="regEmail" type="email" required></div>
         <div class="field"><label>Senha</label><input id="regSenha" type="password" minlength="6" required></div>
         <p id="registerError" style="color:var(--urgent);font-size:12.5px;margin-bottom:10px;display:none;"></p>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Precisa de ajuda com o cadastro? <a href="https://t.me/+5596984293377" target="_blank" rel="noopener" style="color:var(--accent-dark);font-weight:700;">Fale com o suporte no Telegram</a></p>
         <p style="font-size:11.5px;color:var(--muted);margin-bottom:12px;">
             Ao se cadastrar, você concorda com os
             <a href="termos-de-uso.html" target="_blank" style="color:var(--accent-dark);font-weight:700;">Termos de Uso</a>
@@ -3954,6 +3953,54 @@ function capturarLocalizacaoEmpresa(){
             erroEl.style.display = 'block';
         }
     );
+}
+
+
+/* ---------- Suporte: formulário que manda o pedido de ajuda para o Telegram do dono ---------- */
+const SUPORTE_TELEGRAM = 'https://t.me/+5596984293377';
+function abrirSuporte(){
+    let nome = '';
+    try { nome = (currentUser && currentUser.displayName) || localStorage.getItem('zoons_suporte_empresa') || ''; } catch(e){}
+    showModal(`
+        <h3 style="margin:6px 0 4px;">Fale com o suporte</h3>
+        <p style="font-size:13px;color:#6B6F76;margin:0 0 8px;">Conte o que aconteceu. Nossa equipe recebe na hora e responde pelo seu WhatsApp.</p>
+        <label class="pet-lbl" for="supEmpresa">Nome da empresa</label>
+        <div class="field"><input id="supEmpresa" type="text" maxlength="100" placeholder="Ex: Mecânica do João" value="${esc(nome)}"></div>
+        <label class="pet-lbl" for="supProblema">Qual é o problema?</label>
+        <div class="field"><textarea id="supProblema" rows="4" maxlength="1000" placeholder="Conte com detalhes o que está acontecendo."></textarea></div>
+        <label class="pet-lbl" for="supWhats">Seu WhatsApp (com DDD)</label>
+        <div class="field"><input id="supWhats" type="tel" inputmode="tel" maxlength="20" placeholder="41999990000"></div>
+        <input id="supSite" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;height:0;width:0;">
+        <p id="supErro" style="color:#C0392B;font-size:12.5px;margin:10px 0 0;display:none;"></p>
+        <button type="button" class="anuncio-btn-whatsapp pet-continuar" id="supBtn" onclick="enviarSuporte()">Enviar</button>
+    `);
+}
+function enviarSuporte(){
+    const erro = document.getElementById('supErro');
+    const mostrar = (t, comLink) => {
+        erro.innerHTML = esc(t) + (comLink ? ' Se preferir, <a href="' + SUPORTE_TELEGRAM + '" target="_blank" rel="noopener" style="color:#0E7C4A;font-weight:700;">fale direto pelo Telegram</a>.' : '');
+        erro.style.display = 'block';
+    };
+    const empresa = document.getElementById('supEmpresa').value.trim();
+    const problema = document.getElementById('supProblema').value.trim();
+    const whatsapp = document.getElementById('supWhats').value.trim();
+    const dig = whatsapp.replace(/\D/g, '');
+    if(!empresa){ mostrar('Informe o nome da sua empresa.'); return; }
+    if(problema.length < 5){ mostrar('Conte qual é o problema.'); return; }
+    if(dig.length < 10 || dig.length > 13){ mostrar('Informe um WhatsApp válido, com DDD.'); return; }
+    const btn = document.getElementById('supBtn'); btn.disabled = true; btn.textContent = 'Enviando...';
+    fetch(`${NETLIFY_FUNCTIONS_BASE}/suporte`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empresa, problema, whatsapp, site: document.getElementById('supSite').value })
+    }).then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
+        if(!ok){ throw new Error((j && j.erro) || 'erro'); }
+        try { localStorage.setItem('zoons_suporte_empresa', empresa); } catch(e){}
+        showSuccess('Mensagem enviada', 'Recebemos seu pedido e vamos responder pelo seu WhatsApp o mais rápido possível.');
+    }).catch(e => {
+        btn.disabled = false; btn.textContent = 'Enviar';
+        mostrar(e && e.message && e.message !== 'erro' && e.message !== 'Failed to fetch' ? e.message : 'Não foi possível enviar agora.', true);
+    });
 }
 
 function showModal(html){
