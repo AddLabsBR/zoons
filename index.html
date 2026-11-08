@@ -2606,6 +2606,7 @@ function petContinuar(anuncioId){
     if(obs) L.push(`Observações: ${obs}`);
     L.push('');
     L.push(`Anúncio: ${linkAnuncio(a.empresaId, a.id)}`);
+    contar('cliques_contato');
     window.open(`https://wa.me/${numero}?text=${encodeURIComponent(L.join('\n'))}`, '_blank', 'noopener');
 }
 
@@ -2925,6 +2926,7 @@ function fluxoContinuar(anuncioId){
     L.forEach(x => M.push(x));
     M.push('');
     M.push(`Anúncio: ${linkAnuncio(a.empresaId, a.id)}`);
+    contar('cliques_contato');
     window.open(`https://wa.me/${numero}?text=${encodeURIComponent(M.join('\n'))}`, '_blank', 'noopener');
 }
 
@@ -3737,6 +3739,7 @@ function whatsapp(empresaId){
     const msg = encodeURIComponent(`Olá! Vi seu anúncio na Zoons e preciso de ajuda com um serviço.`);
     const numero = numeroWhatsappCompleto(empresa.whatsapp);
     if(!numero) return;
+    contar('cliques_contato');
     window.open(`https://wa.me/${numero}?text=${msg}`, '_blank', 'noopener,noreferrer');
 }
 
@@ -3924,6 +3927,7 @@ function openModal(type){
     closeMobileMenu();
     document.getElementById('modalBody').innerHTML = document.getElementById('tpl-' + type).innerHTML;
     document.getElementById('modalOverlay').classList.add('open');
+    if(type === 'register') contar('cliques_cadastro');
     if(type === 'register'){
         regLat = null;
         regLng = null;
@@ -4002,6 +4006,29 @@ function enviarSuporte(){
         mostrar(e && e.message && e.message !== 'erro' && e.message !== 'Failed to fetch' ? e.message : 'Não foi possível enviar agora.', true);
     });
 }
+
+
+/* ---------- Métricas simples (só o admin consegue ler, no painel) ---------- */
+function _diaHoje(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function contar(campo){
+    try {
+        if(firebaseOffline) return;
+        if(new URLSearchParams(location.search).has('semcontar')) localStorage.setItem('zoons_semcontar', '1');
+        if(localStorage.getItem('zoons_semcontar')) return;
+        db.collection('metricas').doc(_diaHoje()).set({ [campo]: firebase.firestore.FieldValue.increment(1) }, { merge: true }).catch(() => {});
+    } catch(e){}
+}
+(function contarVisita(){
+    try {
+        if(sessionStorage.getItem('zoons_visita')) return;
+        sessionStorage.setItem('zoons_visita', '1');
+    } catch(e){ return; }
+    contar('visitas');
+    try {
+        const dia = _diaHoje();
+        if(localStorage.getItem('zoons_vis_dia') !== dia){ localStorage.setItem('zoons_vis_dia', dia); contar('visitantes'); }
+    } catch(e){}
+})();
 
 function showModal(html){
     limparCarrosseisAnuncio(); // o conteúdo antigo do modal (e seus mini-carrosséis) vai ser substituído

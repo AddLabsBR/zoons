@@ -284,6 +284,9 @@ a{color:inherit;}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4 8.6 8.6 0 0 1-3.1-.6L3 21l1.7-5.1A8.4 8.4 0 1 1 21 11.5z"></path></svg>
                 <span class="badge" id="badgeLeads" hidden>0</span>
             </button>
+            <button class="sb-btn" data-panel="visitas" onclick="switchPanel('visitas')" title="Visitas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"></path><path d="M6 16v-5"></path><path d="M11 16V6"></path><path d="M16 16v-8"></path></svg>
+            </button>
         </nav>
         <div class="sb-foot">
             <a class="sb-btn" href="https://console.firebase.google.com/project/achou-plus/firestore/data/~2Fempresas" target="_blank" rel="noopener" title="Abrir Firestore">
@@ -420,6 +423,23 @@ a{color:inherit;}
             <div class="panel" id="panel-leads">
                 <div class="page-head"><h1>Leads</h1><p>Pedidos recebidos pelo formulário "Preciso agora".</p></div>
                 <div id="tab-leads"><div class="empty">CARREGANDO...</div></div>
+            </div>
+
+            <div class="panel" id="panel-visitas">
+                <div class="page-head"><h1>Visitas</h1><p>Quantas pessoas entram no site e quantas clicam em cadastrar ou em contatar. Só você vê isto.</p></div>
+                <div class="kpi-grid">
+                    <div class="kpi-card accent"><span class="lbl">Visitantes hoje</span><div class="val" id="mHojeVis">0</div><div class="sub" id="mHojeSub">sessões: 0</div></div>
+                    <div class="kpi-card"><span class="lbl">Visitantes (7 dias)</span><div class="val" id="m7Vis">0</div></div>
+                    <div class="kpi-card"><span class="lbl">Cliques em Cadastrar (7 dias)</span><div class="val" id="m7Cad">0</div></div>
+                    <div class="kpi-card"><span class="lbl">Cliques em Contatar (7 dias)</span><div class="val" id="m7Con">0</div></div>
+                    <div class="kpi-card"><span class="lbl">Visitantes (30 dias)</span><div class="val" id="m30Vis">0</div></div>
+                </div>
+                <div class="chart-card">
+                    <h3>Visitantes por dia</h3>
+                    <div class="chart-sub">ÚLTIMOS 14 DIAS</div>
+                    <div class="chart-wrap"><canvas id="chartVisitas"></canvas></div>
+                </div>
+                <p style="font-size:12px;color:var(--muted);margin-top:12px;">Para não contar as suas próprias visitas, abra uma vez <b>zoons.com.br/?semcontar</b> em cada aparelho seu.</p>
             </div>
 
         </div>
@@ -624,6 +644,40 @@ let cacheLeads = [];
 let cacheEmpresasTodas = [];
 let filtroPagamentosAtual = 'todas';
 
+
+/* ========== VISITAS ========== */
+let chartVisitasInst = null;
+function renderVisitas(docs){
+    const por = {};
+    docs.forEach(d => { por[d.id] = d.data(); });
+    const dias = [];
+    for(let i = 29; i >= 0; i--){
+        const d = new Date(); d.setDate(d.getDate() - i);
+        dias.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+    }
+    const soma = (lista, campo) => lista.reduce((t, k) => t + ((por[k] && por[k][campo]) || 0), 0);
+    const ult7 = dias.slice(-7);
+    const hoje = dias[dias.length - 1];
+    document.getElementById('mHojeVis').textContent = (por[hoje] && por[hoje].visitantes) || 0;
+    document.getElementById('mHojeSub').textContent = 'sessões: ' + ((por[hoje] && por[hoje].visitas) || 0);
+    document.getElementById('m7Vis').textContent = soma(ult7, 'visitantes');
+    document.getElementById('m7Cad').textContent = soma(ult7, 'cliques_cadastro');
+    document.getElementById('m7Con').textContent = soma(ult7, 'cliques_contato');
+    document.getElementById('m30Vis').textContent = soma(dias, 'visitantes');
+    if(typeof Chart === 'undefined') return;
+    const ult14 = dias.slice(-14);
+    const labels = ult14.map(k => k.slice(8) + '/' + k.slice(5, 7));
+    const dados = ult14.map(k => (por[k] && por[k].visitantes) || 0);
+    if(chartVisitasInst){ chartVisitasInst.data.labels = labels; chartVisitasInst.data.datasets[0].data = dados; chartVisitasInst.update(); return; }
+    chartVisitasInst = new Chart(document.getElementById('chartVisitas').getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets: [{ data: dados, backgroundColor: '#12A05C', borderRadius: 7, maxBarThickness: 30 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0, color: '#5C7480', font: { size: 11 } }, grid: { color: '#E4EDE9' } },
+                      x: { ticks: { color: '#5C7480', font: { size: 11 } }, grid: { display: false } } } }
+    });
+}
+
 /* ========== LISTENERS ========== */
 
 function iniciarListeners(){
@@ -646,6 +700,11 @@ function iniciarListeners(){
     unsubscribers.push(
         db.collection('leads').orderBy('criado_em', 'desc').limit(100)
           .onSnapshot(snap => { cacheLeads = snap.docs; renderLeads(); atualizarKPIsBasicos(); }, err => console.error(err))
+    );
+
+    unsubscribers.push(
+        db.collection('metricas').orderBy(firebase.firestore.FieldPath.documentId(), 'desc').limit(30)
+          .onSnapshot(snap => { renderVisitas(snap.docs); }, err => console.error('metricas:', err))
     );
 
     unsubscribers.push(
