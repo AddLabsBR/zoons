@@ -1823,6 +1823,7 @@ function quickCat(c){var el=document.querySelector('.category[data-cat="'+c+'"]'
         <div class="field"><label>E-mail</label><input id="loginEmail" type="email" required></div>
         <div class="field"><label>Senha</label><input id="loginSenha" type="password" required></div>
         <p id="loginError" style="color:var(--urgent);font-size:12.5px;margin-bottom:10px;display:none;"></p>
+        <p style="font-size:12.5px;margin:-2px 0 12px;"><a href="#" onclick="esqueciSenha();return false" style="color:var(--accent-dark);font-weight:700;">Esqueci minha senha</a></p>
         <button class="modal-submit login-door-btn" id="loginDoorBtn" type="submit">
             <span class="login-btn-label">Entrar</span>
             <span class="login-btn-scene" aria-hidden="true">
@@ -4054,6 +4055,22 @@ function showSuccess(title, sub){
 }
 
 /* ---------- LOGIN ---------- */
+
+function esqueciSenha(){
+    const email = (document.getElementById('loginEmail').value || '').trim();
+    const erroEl = document.getElementById('loginError');
+    erroEl.style.color = 'var(--urgent)';
+    if(!email){ erroEl.textContent = 'Digite o seu e-mail acima e toque de novo em "Esqueci minha senha".'; erroEl.style.display = 'block'; return; }
+    if(!auth.sendPasswordResetEmail){ erroEl.textContent = 'Não foi possível enviar agora.'; erroEl.style.display = 'block'; return; }
+    auth.sendPasswordResetEmail(email).then(() => {
+        erroEl.style.color = 'var(--accent-dark)';
+        erroEl.textContent = 'Pronto! Se existir uma conta com esse e-mail, enviamos um link para criar uma nova senha. Veja também a caixa de spam.';
+        erroEl.style.display = 'block';
+    }).catch(err => {
+        erroEl.textContent = traduzErroFirebase(err);
+        erroEl.style.display = 'block';
+    });
+}
 
 function handleLogin(e){
     e.preventDefault();
