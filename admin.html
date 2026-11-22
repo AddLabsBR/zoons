@@ -678,6 +678,21 @@ function renderVisitas(docs){
     });
 }
 
+function carregarMetricas(){
+    const ids = [];
+    for(let i = 29; i >= 0; i--){
+        const d = new Date(); d.setDate(d.getDate() - i);
+        ids.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+    }
+    Promise.all(ids.map(k => db.collection('metricas').doc(k).get()))
+        .then(snaps => { renderVisitas(snaps.filter(s => s.exists)); })
+        .catch(err => {
+            console.error('metricas:', err);
+            const el = document.getElementById('mHojeSub');
+            if(el) el.textContent = 'erro ao ler: ' + ((err && (err.code || err.message)) || 'desconhecido');
+        });
+}
+
 /* ========== LISTENERS ========== */
 
 function iniciarListeners(){
@@ -702,10 +717,11 @@ function iniciarListeners(){
           .onSnapshot(snap => { cacheLeads = snap.docs; renderLeads(); atualizarKPIsBasicos(); }, err => console.error(err))
     );
 
-    unsubscribers.push(
-        db.collection('metricas').orderBy(firebase.firestore.FieldPath.documentId(), 'desc').limit(30)
-          .onSnapshot(snap => { renderVisitas(snap.docs); }, err => console.error('metricas:', err))
-    );
+    // Visitas: lê os 30 documentos (um por dia) direto pelo ID, sem consulta de lista,
+    // e atualiza a cada 2 minutos. Se der erro, mostra o motivo no próprio painel.
+    carregarMetricas();
+    const _timerMetricas = setInterval(carregarMetricas, 120000);
+    unsubscribers.push(() => clearInterval(_timerMetricas));
 
     unsubscribers.push(
         db.collection('contadores').doc('fundadores')
