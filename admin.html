@@ -5,14 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zoons | Painel Administrativo</title>
 
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"></noscript>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js" defer></script>
 
 <style>
 
@@ -254,7 +258,7 @@ a{color:inherit;}
     <div class="login-card">
         <h2>Sem acesso</h2>
         <p class="sub">Essa conta não tem permissão de administrador.</p>
-        <button class="submit-btn" onclick="auth.signOut()">Sair</button>
+        <button class="submit-btn" onclick="sairDoPainel()">Sair</button>
     </div>
 </div>
 
@@ -292,7 +296,7 @@ a{color:inherit;}
             <a class="sb-btn" href="https://console.firebase.google.com/project/achou-plus/firestore/data/~2Fempresas" target="_blank" rel="noopener" title="Abrir Firestore">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"></ellipse><path d="M4 5.5v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"></path><path d="M4 11.5v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"></path></svg>
             </a>
-            <button class="sb-btn" onclick="auth.signOut()" title="Sair">
+            <button class="sb-btn" onclick="sairDoPainel()" title="Sair">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg>
             </button>
         </div>
@@ -307,7 +311,7 @@ a{color:inherit;}
             </div>
             <div class="topbar-right">
                 <a class="btn-ghost" href="https://console.firebase.google.com/project/achou-plus/firestore/data/~2Fempresas" target="_blank" rel="noopener">Firestore ↗</a>
-                <button class="btn-ghost" onclick="auth.signOut()">Sair</button>
+                <button class="btn-ghost" onclick="sairDoPainel()">Sair</button>
                 <div class="avatar-chip" id="avatarChip">A</div>
             </div>
         </header>
@@ -474,6 +478,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+// Cache local (IndexedDB): ao reabrir, os dados aparecem na hora e o servidor só atualiza o que mudou
+try { db.enablePersistence({ synchronizeTabs: true }).catch(() => {}); } catch(e){}
 
 const NETLIFY_FUNCTIONS_BASE = 'https://achou-plus-backend.netlify.app/.netlify/functions';
 const LIMITE_FUNDADORES = 15;
@@ -546,37 +552,72 @@ function handleAdminLogin(e){
 
 let unsubscribers = [];
 
+const LS_ADMIN = 'zoons_admin_uid';
+function lsAdmin(v){
+    try { if(v === undefined) return localStorage.getItem(LS_ADMIN); if(v === null) localStorage.removeItem(LS_ADMIN); else localStorage.setItem(LS_ADMIN, v); } catch(e){}
+    return null;
+}
+function mostrarTela(qual){
+    document.getElementById('loginScreen').hidden = qual !== 'login';
+    document.getElementById('deniedScreen').hidden = qual !== 'denied';
+    document.getElementById('app').hidden = qual !== 'app';
+}
+function abrirApp(user){
+    mostrarTela('app');
+    const nomeAdmin = (user.email || 'Admin').split('@')[0];
+    document.getElementById('saudacao').textContent = 'Olá, ' + nomeAdmin + ' 👋';
+    document.getElementById('avatarChip').textContent = iniciais(nomeAdmin);
+}
+function sairDoPainel(){
+    lsAdmin(null);
+    auth.signOut();
+}
+
+// Se este aparelho já entrou como admin antes, mostra o painel na hora (sem esperar a rede).
+// Os dados continuam protegidos pelas regras do Firestore: sem login válido nada é lido.
+if(lsAdmin()) mostrarTela('app');
+
+let _uidAtivo = null;
 auth.onAuthStateChanged(async user => {
+    if(!user){
+        unsubscribers.forEach(u => u());
+        unsubscribers = [];
+        _uidAtivo = null;
+        lsAdmin(null);
+        mostrarTela('login');
+        return;
+    }
+    if(_uidAtivo === user.uid) return;   // evita reiniciar tudo à toa
     unsubscribers.forEach(u => u());
     unsubscribers = [];
+    _uidAtivo = user.uid;
 
-    document.getElementById('loginScreen').hidden = true;
-    document.getElementById('deniedScreen').hidden = true;
-    document.getElementById('app').hidden = true;
-
-    if(!user){
-        document.getElementById('loginScreen').hidden = false;
+    if(lsAdmin() === user.uid){
+        // Caminho rápido: abre e começa a carregar já; confirma o acesso em paralelo.
+        abrirApp(user);
+        iniciarListeners();
+        db.collection('usuarios').doc(user.uid).get().then(doc => {
+            if(!(doc.exists && doc.data().tipo === 'admin')){
+                unsubscribers.forEach(u => u()); unsubscribers = [];
+                lsAdmin(null); _uidAtivo = null;
+                mostrarTela('denied');
+            }
+        }).catch(err => console.error(err));   // sem rede: segue com o cache
         return;
     }
 
+    // Primeiro acesso neste aparelho: confirma que é admin antes de mostrar.
+    mostrarTela('none');
     try {
         const doc = await db.collection('usuarios').doc(user.uid).get();
-        const tipo = doc.exists ? doc.data().tipo : null;
-
-        if(tipo !== 'admin'){
-            document.getElementById('deniedScreen').hidden = false;
-            return;
-        }
-
-        document.getElementById('app').hidden = false;
-        const nomeAdmin = (user.email || 'Admin').split('@')[0];
-        document.getElementById('saudacao').textContent = 'Olá, ' + nomeAdmin + ' 👋';
-        document.getElementById('avatarChip').textContent = iniciais(nomeAdmin);
+        if(!(doc.exists && doc.data().tipo === 'admin')){ _uidAtivo = null; mostrarTela('denied'); return; }
+        lsAdmin(user.uid);
+        abrirApp(user);
         iniciarListeners();
-
     } catch(err){
         console.error(err);
-        document.getElementById('deniedScreen').hidden = false;
+        _uidAtivo = null;
+        mostrarTela('denied');
     }
 });
 
@@ -588,6 +629,12 @@ function switchPanel(nome){
     const btn = document.querySelector('.sb-btn[data-panel="' + nome + '"]');
     if(btn) btn.classList.add('active');
     document.getElementById('panel-' + nome).classList.add('active');
+    // O gráfico de visitas é criado com o painel escondido (tamanho 0): redimensiona ao abrir
+    if(nome === 'visitas'){
+        setTimeout(() => {
+            try { if(typeof carregarMetricas === 'function') carregarMetricas(); if(chartVisitasInst){ chartVisitasInst.resize(); chartVisitasInst.update(); } } catch(e){}
+        }, 60);
+    }
     document.getElementById('buscaGlobal').value = '';
     buscaAtual = '';
 }
@@ -699,34 +746,64 @@ function iniciarListeners(){
 
     unsubscribers.push(
         db.collection('empresas').where('status', '==', 'pendente')
-          .onSnapshot(snap => { cachePendentes = snap.docs; renderPendentes(); atualizarKPIsBasicos(); atualizarCacheCompleto(); }, err => console.error(err))
+          .onSnapshot(snap => { cachePendentes = snap.docs; agendarRender('pend'); }, err => console.error(err))
     );
 
     unsubscribers.push(
         db.collection('empresas').where('status', '==', 'aprovado')
-          .onSnapshot(snap => { cacheAprovadas = snap.docs; renderAprovadas(); atualizarKPIsBasicos(); atualizarCacheCompleto(); }, err => console.error(err))
+          .onSnapshot(snap => { cacheAprovadas = snap.docs; agendarRender('aprov'); }, err => console.error(err))
     );
 
     unsubscribers.push(
         db.collection('empresas').where('status', '==', 'rejeitado')
-          .onSnapshot(snap => { cacheDesativadas = snap.docs; renderDesativadas(); atualizarKPIsBasicos(); atualizarCacheCompleto(); }, err => console.error(err))
+          .onSnapshot(snap => { cacheDesativadas = snap.docs; agendarRender('desat'); }, err => console.error(err))
     );
 
     unsubscribers.push(
         db.collection('leads').orderBy('criado_em', 'desc').limit(100)
-          .onSnapshot(snap => { cacheLeads = snap.docs; renderLeads(); atualizarKPIsBasicos(); }, err => console.error(err))
+          .onSnapshot(snap => { cacheLeads = snap.docs; agendarRender('leads'); }, err => console.error(err))
     );
 
-    // Visitas: lê os 30 documentos (um por dia) direto pelo ID, sem consulta de lista,
-    // e atualiza a cada 2 minutos. Se der erro, mostra o motivo no próprio painel.
-    carregarMetricas();
-    const _timerMetricas = setInterval(carregarMetricas, 120000);
+    // Visitas: 30 leituras por ID. Carrega depois do painel principal e só atualiza
+    // sozinho (a cada 2 min) enquanto a seção Visitas está aberta e visível.
+    const _ocioso = window.requestIdleCallback || (f => setTimeout(f, 1200));
+    _ocioso(() => carregarMetricas());
+    const _timerMetricas = setInterval(() => {
+        const p = document.getElementById('panel-visitas');
+        if(!document.hidden && p && p.classList.contains('active')) carregarMetricas();
+    }, 120000);
     unsubscribers.push(() => clearInterval(_timerMetricas));
 
     unsubscribers.push(
         db.collection('contadores').doc('fundadores')
           .onSnapshot(doc => { renderFundadores(doc.exists ? (doc.data().total || 0) : 0); }, err => console.error(err))
     );
+}
+
+// Junta várias atualizações seguidas (os 3 listeners de empresas disparam quase juntos)
+// em UMA só renderização por quadro, em vez de redesenhar tudo várias vezes.
+const _sujo = {};
+let _renderAgendado = false;
+function agendarRender(k){
+    _sujo[k] = true;
+    if(_renderAgendado) return;
+    _renderAgendado = true;
+    // O Chart.js carrega em segundo plano (defer): se os dados do cache chegarem antes, espera ele.
+    if(typeof Chart === 'undefined' && document.readyState !== 'complete'){
+        window.addEventListener('load', () => { _renderAgendado = false; agendarRender(k); }, { once: true });
+        return;
+    }
+    requestAnimationFrame(() => {
+        _renderAgendado = false;
+        const j = Object.assign({}, _sujo);
+        for(const x in _sujo) delete _sujo[x];
+        if(j.pend) renderPendentes();
+        if(j.aprov) renderAprovadas();
+        if(j.desat) renderDesativadas();
+        if(j.leads) renderLeads();
+        atualizarKPIsBasicos();
+        if(j.pend || j.aprov || j.desat) atualizarCacheCompleto();
+    });
 }
 
 // Em vez de pedir a coleção "empresas" inteira sem filtro (o que as regras
