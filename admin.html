@@ -16,7 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js" defer onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';document.head.appendChild(s)"></script>
 
 <style>
 
@@ -1107,6 +1107,16 @@ function renderDashboard(){
     catch(err){ console.error('Erro na lista de atenção:', err); }
 }
 
+// O Chart.js carrega em segundo plano: se ainda não chegou, espera (até ~12 s) e refaz o gráfico,
+// em vez de mostrar erro na hora (e apagar o canvas).
+function esperarChart(retomar, falhar){
+    let n = 0;
+    const t = setInterval(() => {
+        if(typeof Chart !== 'undefined'){ clearInterval(t); retomar(); }
+        else if(++n > 60){ clearInterval(t); falhar(); }
+    }, 200);
+}
+
 function mostrarFalhaChart(canvasId, msg){
     const canvas = document.getElementById(canvasId);
     const wrap = canvas ? canvas.closest('.chart-wrap') : null;
@@ -1115,7 +1125,7 @@ function mostrarFalhaChart(canvasId, msg){
 
 function renderChartCadastros(){
     if(typeof Chart === 'undefined'){
-        mostrarFalhaChart('chartCadastros', 'Gráficos indisponíveis no momento (biblioteca não carregou). Atualize a página.');
+        esperarChart(renderChartCadastros, () => mostrarFalhaChart('chartCadastros', 'Gráficos indisponíveis no momento (biblioteca não carregou). Atualize a página.'));
         return;
     }
     const hoje = new Date();
@@ -1174,7 +1184,7 @@ function renderChartStatus(comAssinatura){
     const wrap = document.getElementById('chartStatusWrap');
 
     if(typeof Chart === 'undefined'){
-        wrap.innerHTML = '<div class="chart-empty">Gráficos indisponíveis no momento (biblioteca não carregou). Atualize a página.</div>';
+        esperarChart(() => renderChartStatus(comAssinatura), () => { wrap.innerHTML = '<div class="chart-empty">Gráficos indisponíveis no momento (biblioteca não carregou). Atualize a página.</div>'; });
         return;
     }
 
